@@ -1,3 +1,5 @@
-var x: bool
-var y: int
-var z: real
+var p: bool
+var q: bool
+var r: bool
+
+let formula = (p \/ q) /\ (~q \/ ~r) <=> p \/ r => q
