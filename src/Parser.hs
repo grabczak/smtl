@@ -1,6 +1,13 @@
 {-# LANGUAGE GADTs #-}
 
-module Parser (Program, program) where
+module Parser (
+  Identifier,
+  Type (..),
+  Expr (..),
+  Statement (..),
+  Program (..),
+  program,
+) where
 
 import Data.Void
 import Text.Megaparsec
