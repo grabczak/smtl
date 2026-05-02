@@ -1,0 +1,3 @@
+var x: bool
+var y: int
+var z: real

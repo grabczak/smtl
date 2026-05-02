@@ -1,6 +1,17 @@
 module Main (main) where
 
-import Lib
+import Data.Void
+import Text.Megaparsec
+
+import Parser
+
+smtl :: String -> String -> Either (ParseErrorBundle String Void) Program
+smtl path content = parse program path content
 
 main :: IO ()
-main = someFunc
+main = do
+  let path = "./example.smtl"
+  content <- readFile "./example.smtl"
+  case smtl path content of
+    Left e -> putStrLn $ errorBundlePretty e
+    Right p -> print $ p
