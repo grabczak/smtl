@@ -22,13 +22,6 @@ typesTestsInt = TestCase $ do
     Right (Program [Var "x" Int]) -> return ()
     _ -> assertFailure "Failed to parse int type"
 
-typesTestsReal :: Test
-typesTestsReal = TestCase $ do
-  let input = "var x : real"
-  case parse Parser.program "" input of
-    Right (Program [Var "x" Real]) -> return ()
-    _ -> assertFailure "Failed to parse real type"
-
 -- ============================================================================
 -- VARIABLE DECLARATION TESTS
 -- ============================================================================
@@ -42,17 +35,17 @@ varDeclSimple = TestCase $ do
 
 varDeclMultiChar :: Test
 varDeclMultiChar = TestCase $ do
-  let input = "var my_variable : real"
+  let input = "var my_variable : int"
   case parse Parser.program "" input of
-    Right (Program [Var "my_variable" Real]) -> return ()
+    Right (Program [Var "my_variable" Int]) -> return ()
     _ -> assertFailure "Failed to parse multi-char var with underscore"
 
 varDeclMultiple :: Test
 varDeclMultiple = TestCase $ do
-  let input = "var x : int\nvar y : bool\nvar z : real"
+  let input = "var x : int\nvar y : bool"
   case parse Parser.program "" input of
     Right (Program stmts) ->
-      assertEqual "Should have 3 declarations" 3 (length stmts)
+      assertEqual "Should have 2 declarations" 2 (length stmts)
     _ -> assertFailure "Failed to parse multiple var declarations"
 
 varDeclWithWhitespace :: Test
@@ -120,52 +113,6 @@ intLitNegativeZero = TestCase $ do
     _ -> assertFailure "Failed to parse negative zero"
 
 -- ============================================================================
--- REAL LITERAL TESTS
--- ============================================================================
-
-realLitBasic :: Test
-realLitBasic = TestCase $ do
-  let input = "let x = 3.14"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real literal"
-
-realLitZero :: Test
-realLitZero = TestCase $ do
-  let input = "let x = 0.0"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real literal 0.0"
-
-realLitNegative :: Test
-realLitNegative = TestCase $ do
-  let input = "let x = -3.14"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse negative real literal"
-
-realLitNoLeadingZero :: Test
-realLitNoLeadingZero = TestCase $ do
-  let input = "let x = 0.5"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real literal without leading digits"
-
-realLitNoTrailingZero :: Test
-realLitNoTrailingZero = TestCase $ do
-  let input = "let x = 5.0"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real literal without trailing digits"
-
-realLitLong :: Test
-realLitLong = TestCase $ do
-  let input = "let x = 123456.789012"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse long real literal"
-
--- ============================================================================
 -- UNARY OPERATOR TESTS
 -- ============================================================================
 
@@ -196,13 +143,6 @@ unaryNegateInt = TestCase $ do
   case parse Parser.program "" input of
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse unary negate on int"
-
-unaryNegateReal :: Test
-unaryNegateReal = TestCase $ do
-  let input = "let x = - 3.14"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse unary negate on real"
 
 unaryNegateIdentifier :: Test
 unaryNegateIdentifier = TestCase $ do
@@ -322,13 +262,6 @@ equalityInt = TestCase $ do
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse equality on ints"
 
-equalityReal :: Test
-equalityReal = TestCase $ do
-  let input = "let x = 3.14 = 2.71"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse equality on reals"
-
 equalityChained :: Test
 equalityChained = TestCase $ do
   let input = "let x = a = b = c"
@@ -353,13 +286,6 @@ inequalityInt = TestCase $ do
   case parse Parser.program "" input of
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse inequality on ints"
-
-inequalityReal :: Test
-inequalityReal = TestCase $ do
-  let input = "let x = 3.14 != 2.71"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse inequality on reals"
 
 -- ============================================================================
 -- RELATIONAL OPERATOR TESTS
@@ -393,20 +319,6 @@ greaterThanOrEqualInt = TestCase $ do
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse greater than or equal"
 
-lessThanReal :: Test
-lessThanReal = TestCase $ do
-  let input = "let x = 3.14 < 2.71"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse less than on reals"
-
-greaterThanReal :: Test
-greaterThanReal = TestCase $ do
-  let input = "let x = 3.14 > 2.71"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse greater than on reals"
-
 -- ============================================================================
 -- ARITHMETIC OPERATOR TESTS - ADDITION
 -- ============================================================================
@@ -432,13 +344,6 @@ addIntNegative = TestCase $ do
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse integer addition with negative"
 
-addRealBasic :: Test
-addRealBasic = TestCase $ do
-  let input = "let x = 3.14 + 2.71"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real addition"
-
 -- ============================================================================
 -- ARITHMETIC OPERATOR TESTS - SUBTRACTION
 -- ============================================================================
@@ -456,13 +361,6 @@ subIntChained = TestCase $ do
   case parse Parser.program "" input of
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse chained integer subtraction"
-
-subRealBasic :: Test
-subRealBasic = TestCase $ do
-  let input = "let x = 3.14 - 2.71"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real subtraction"
 
 -- ============================================================================
 -- ARITHMETIC OPERATOR TESTS - MULTIPLICATION
@@ -482,13 +380,6 @@ mulIntChained = TestCase $ do
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse chained integer multiplication"
 
-mulRealBasic :: Test
-mulRealBasic = TestCase $ do
-  let input = "let x = 3.14 * 2.0"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real multiplication"
-
 -- ============================================================================
 -- ARITHMETIC OPERATOR TESTS - DIVISION
 -- ============================================================================
@@ -499,20 +390,6 @@ divIntBasic = TestCase $ do
   case parse Parser.program "" input of
     Right (Program [Let "x" _]) -> return ()
     _ -> assertFailure "Failed to parse integer division"
-
-divRealBasic :: Test
-divRealBasic = TestCase $ do
-  let input = "let x = 10.0 / 2.5"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse real division"
-
-divRealByZeroSyntax :: Test
-divRealByZeroSyntax = TestCase $ do
-  let input = "let x = 10.0 / 0.0"
-  case parse Parser.program "" input of
-    Right (Program [Let "x" _]) -> return ()
-    _ -> assertFailure "Failed to parse division by zero (syntax valid)"
 
 -- ============================================================================
 -- OPERATOR PRECEDENCE TESTS
@@ -698,13 +575,6 @@ letDeclBool = TestCase $ do
     Right (Program [Let "flag" _]) -> return ()
     _ -> assertFailure "Failed to parse let with boolean"
 
-letDeclReal :: Test
-letDeclReal = TestCase $ do
-  let input = "let pi = 3.14159"
-  case parse Parser.program "" input of
-    Right (Program [Let "pi" _]) -> return ()
-    _ -> assertFailure "Failed to parse let with real number"
-
 letDeclComplex :: Test
 letDeclComplex = TestCase $ do
   let input = "let result = 2 + 3 * 4"
@@ -817,10 +687,10 @@ programMixedStatements = TestCase $ do
 
 programAllVars :: Test
 programAllVars = TestCase $ do
-  let input = "var a : bool\nvar b : int\nvar c : real"
+  let input = "var a : bool\nvar b : int"
   case parse Parser.program "" input of
     Right (Program stmts) ->
-      assertEqual "Should have 3 var declarations" 3 (length stmts)
+      assertEqual "Should have 2 var declarations" 2 (length stmts)
     _ -> assertFailure "Failed to parse program with all vars"
 
 programAllLets :: Test
@@ -1012,7 +882,6 @@ main = do
         [ -- Type tests
           TestLabel "typeTestsBool" typeTestsBool
         , TestLabel "typesTestsInt" typesTestsInt
-        , TestLabel "typesTestsReal" typesTestsReal
         , -- Variable declaration tests
           TestLabel "varDeclSimple" varDeclSimple
         , TestLabel "varDeclMultiChar" varDeclMultiChar
@@ -1027,19 +896,11 @@ main = do
         , TestLabel "intLitLarge" intLitLarge
         , TestLabel "intLitNegative" intLitNegative
         , TestLabel "intLitNegativeZero" intLitNegativeZero
-        , -- Real literal tests
-          TestLabel "realLitBasic" realLitBasic
-        , TestLabel "realLitZero" realLitZero
-        , TestLabel "realLitNegative" realLitNegative
-        , TestLabel "realLitNoLeadingZero" realLitNoLeadingZero
-        , TestLabel "realLitNoTrailingZero" realLitNoTrailingZero
-        , TestLabel "realLitLong" realLitLong
         , -- Unary operator tests
           TestLabel "unaryNotBool" unaryNotBool
         , TestLabel "unaryNotIdentifier" unaryNotIdentifier
         , TestLabel "unaryNotNested" unaryNotNested
         , TestLabel "unaryNegateInt" unaryNegateInt
-        , TestLabel "unaryNegateReal" unaryNegateReal
         , TestLabel "unaryNegateIdentifier" unaryNegateIdentifier
         , TestLabel "unaryNegateNested" unaryNegateNested
         , -- Binary and operator tests
@@ -1059,36 +920,27 @@ main = do
         , -- Equality operator tests
           TestLabel "equalityBool" equalityBool
         , TestLabel "equalityInt" equalityInt
-        , TestLabel "equalityReal" equalityReal
         , TestLabel "equalityChained" equalityChained
         , -- Inequality operator tests
           TestLabel "inequalityBool" inequalityBool
         , TestLabel "inequalityInt" inequalityInt
-        , TestLabel "inequalityReal" inequalityReal
         , -- Relational operator tests
           TestLabel "lessThanInt" lessThanInt
         , TestLabel "greaterThanInt" greaterThanInt
         , TestLabel "lessThanOrEqualInt" lessThanOrEqualInt
         , TestLabel "greaterThanOrEqualInt" greaterThanOrEqualInt
-        , TestLabel "lessThanReal" lessThanReal
-        , TestLabel "greaterThanReal" greaterThanReal
         , -- Arithmetic addition tests
           TestLabel "addIntBasic" addIntBasic
         , TestLabel "addIntChained" addIntChained
         , TestLabel "addIntNegative" addIntNegative
-        , TestLabel "addRealBasic" addRealBasic
         , -- Arithmetic subtraction tests
           TestLabel "subIntBasic" subIntBasic
         , TestLabel "subIntChained" subIntChained
-        , TestLabel "subRealBasic" subRealBasic
         , -- Arithmetic multiplication tests
           TestLabel "mulIntBasic" mulIntBasic
         , TestLabel "mulIntChained" mulIntChained
-        , TestLabel "mulRealBasic" mulRealBasic
         , -- Arithmetic division tests
           TestLabel "divIntBasic" divIntBasic
-        , TestLabel "divRealBasic" divRealBasic
-        , TestLabel "divRealByZeroSyntax" divRealByZeroSyntax
         , -- Operator precedence tests
           TestLabel "precedenceAddVsMul" precedenceAddVsMul
         , TestLabel "precedenceMulVsAdd" precedenceMulVsAdd
@@ -1117,7 +969,6 @@ main = do
         , -- Let declaration tests
           TestLabel "letDeclBasic" letDeclBasic
         , TestLabel "letDeclBool" letDeclBool
-        , TestLabel "letDeclReal" letDeclReal
         , TestLabel "letDeclComplex" letDeclComplex
         , TestLabel "letDeclLogical" letDeclLogical
         , TestLabel "letDeclMultiple" letDeclMultiple
