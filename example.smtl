@@ -1,5 +1,40 @@
 var p: bool
 var q: bool
-var r: bool
 
-let formula = (p \/ q) /\ (~q \/ ~r) <=> p \/ r => q
+var x: int
+var y: int
+var z: int
+var count: int
+
+let or = p \/ q
+let and = p /\ q
+let not = ~p
+let implies = p => q
+let iff = p <=> q
+
+let f = (p \/ q) /\ (r => s)
+let de_morgan = (p /\ q) <=> ~ (~ p \/ ~ q)
+
+let lt = x < y
+let leq = x <= y
+let gt = x > y
+let geq = x >= y
+let eq = x == y
+let neq = x != y
+
+let add = x + y < z
+let sub = x - y > 0
+let mul = x * y <= 100
+let neg = -x < y
+
+let f1 = p /\ (x < y)
+let f2 = (p \/ q) => (x + y > z)
+let f3 = (x <= 10) /\ (y >= 5) /\ (p <=> q)
+
+assert p /\ q
+assert x < y
+assert (p \/ q) /\ (x + y > 0)
+
+assert f /\ (x >= 0)
+
+assert f3 /\ (count < 1000)

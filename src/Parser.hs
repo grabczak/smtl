@@ -39,61 +39,41 @@ parens = between (symbol "(") (symbol ")")
 
 type Identifier = String
 
-data Type = Bool | Int deriving (Show)
+data Type = Bool | Int
+  deriving (Show)
 
-data Expr a where
-  -- Booleans
-  BoolLit :: Bool -> Expr Bool
-  BoolVar :: Identifier -> Expr Bool
-  BoolNot :: Expr Bool -> Expr Bool
-  BoolAnd :: Expr Bool -> Expr Bool -> Expr Bool
-  BoolOr :: Expr Bool -> Expr Bool -> Expr Bool
-  BoolImplies :: Expr Bool -> Expr Bool -> Expr Bool
-  BoolIff :: Expr Bool -> Expr Bool -> Expr Bool
-  -- Integers
-  IntLit :: Int -> Expr Int
-  IntVar :: Identifier -> Expr Int
-  IntAdd :: Expr Int -> Expr Int -> Expr Int
-  IntSub :: Expr Int -> Expr Int -> Expr Int
-  IntMul :: Expr Int -> Expr Int -> Expr Int
-  -- Comparisons
-  Eq :: Expr a -> Expr a -> Expr Bool
-  Neq :: Expr a -> Expr a -> Expr Bool
-  Lt :: Expr a -> Expr a -> Expr Bool
-  Gt :: Expr a -> Expr a -> Expr Bool
-  Leq :: Expr a -> Expr a -> Expr Bool
-  Geq :: Expr a -> Expr a -> Expr Bool
-
-instance Show (Expr a) where
-  show (BoolLit b) = "BoolLit " ++ show b
-  show (BoolVar v) = "BoolVar " ++ v
-  show (BoolNot e) = "BoolNot (" ++ show e ++ ")"
-  show (BoolOr a b) = "BoolOr (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (BoolAnd a b) = "BoolAnd (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (BoolImplies a b) = "BoolImpl (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (BoolIff a b) = "BoolIff (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (IntLit n) = "IntLit " ++ show n
-  show (IntVar v) = "IntVar " ++ v
-  show (IntAdd a b) = "IntAdd (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (IntSub a b) = "IntSub (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (IntMul a b) = "IntMul (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (Eq a b) = "Eq (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (Neq a b) = "Neq (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (Lt a b) = "Lt (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (Gt a b) = "Gt (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (Leq a b) = "Leq (" ++ show a ++ ") (" ++ show b ++ ")"
-  show (Geq a b) = "Geq (" ++ show a ++ ") (" ++ show b ++ ")"
+-- Untyped expression, used during parsing before type checking
+data Expr
+  = Var Identifier
+  | BoolLit Bool
+  | IntLit Int
+  | Not Expr
+  | Neg Expr
+  | And Expr Expr
+  | Or Expr Expr
+  | Implies Expr Expr
+  | Iff Expr Expr
+  | Add Expr Expr
+  | Sub Expr Expr
+  | Mul Expr Expr
+  | Eq Expr Expr
+  | Neq Expr Expr
+  | Lt Expr Expr
+  | Gt Expr Expr
+  | Leq Expr Expr
+  | Geq Expr Expr
+  deriving (Show)
 
 data Statement
-  = Var Identifier Type
-  | Let Identifier (Expr Bool)
-  | Assert (Expr Bool)
+  = VarDeclaration Identifier Type
+  | LetBinding Identifier Expr
+  | Assertion Expr
   deriving (Show)
 
 data Program = Program [Statement]
 
 instance Show Program where
-  show (Program stmts) = "Program [\n" ++ concatMap (\s -> "  " ++ show s ++ "\n") stmts ++ "]"
+  show (Program stmts) = unlines $ map show stmts
 
 reservedWords :: [String]
 reservedWords =
@@ -101,10 +81,9 @@ reservedWords =
   , "let"
   , "assert"
   , "bool"
+  , "int"
   , "T"
   , "F"
-  , "int"
-  , "real"
   ]
 
 keyword :: String -> Parser ()
@@ -125,63 +104,85 @@ bool, int :: Parser Type
 bool = lexeme $ keyword "bool" >> return Bool
 int = lexeme $ keyword "int" >> return Int
 
-varStmt :: Parser Statement
-varStmt = lexeme $ do
-  keyword "var"
+var :: Parser Expr
+var = lexeme $ do
   v <- identifier
-  _ <- symbol ":"
-  t <- bool <|> int
-  return $ Var v t
+  return $ Var v
 
-boolLit :: Parser (Expr Bool)
+boolLit :: Parser Expr
 boolLit = lexeme $ do
   b <- (keyword "T" >> return True) <|> (keyword "F" >> return False)
   return $ BoolLit b
 
-boolVar :: Parser (Expr Bool)
-boolVar = lexeme $ do
-  v <- identifier
-  return $ BoolVar v
+intLit :: Parser Expr
+intLit = lexeme $ do
+  n <- L.decimal
+  return $ IntLit n
 
-boolNot :: Parser (Expr Bool)
-boolNot = lexeme $ do
-  _ <- symbol "~"
-  p <- boolAtom
-  return $ BoolNot p
-
-boolAtom :: Parser (Expr Bool)
-boolAtom =
-  choice
-    [ boolLit
-    , boolNot
-    , boolVar
-    , parens boolExpr
+operatorTable :: [[Operator Parser Expr]]
+operatorTable =
+  [
+    [ Prefix (symbol "~" >> return Not)
+    , Prefix (symbol "-" >> return Neg)
     ]
-
-boolOperatorTable :: [[Operator Parser (Expr Bool)]]
-boolOperatorTable =
-  [ [InfixL (BoolAnd <$ symbol "/\\")]
-  , [InfixL (BoolOr <$ symbol "\\/")]
-  , [InfixR (BoolImplies <$ symbol "=>")]
-  , [InfixN (BoolIff <$ symbol "<=>")]
+  , [InfixL (symbol "*" >> return Mul)]
+  ,
+    [ InfixL (symbol "+" >> return Add)
+    , InfixL (symbol "-" >> return Sub)
+    ]
+  ,
+    [ InfixN (try (symbol "==") >> return Eq)
+    , InfixN (try (symbol "!=") >> return Neq)
+    , InfixN (try (symbol "<=>") >> return Iff)
+    , InfixN (try (symbol "<=") >> return Leq)
+    , InfixN (try (symbol ">=") >> return Geq)
+    , InfixN (symbol "<" >> return Lt)
+    , InfixN (symbol ">" >> return Gt)
+    ]
+  , [InfixL (symbol "/\\" >> return And)]
+  , [InfixL (symbol "\\/" >> return Or)]
+  , [InfixR (try (symbol "=>") >> return Implies)]
   ]
 
-boolExpr :: Parser (Expr Bool)
-boolExpr = makeExprParser boolAtom boolOperatorTable
+term :: Parser Expr
+term =
+  choice
+    [ parens expr
+    , boolLit
+    , intLit
+    , var
+    ]
 
-letStmt :: Parser Statement
-letStmt = lexeme $ do
+expr :: Parser Expr
+expr = makeExprParser term operatorTable
+
+varDeclaration :: Parser Statement
+varDeclaration = lexeme $ do
+  keyword "var"
+  v <- identifier
+  _ <- symbol ":"
+  t <- bool <|> int
+  return $ VarDeclaration v t
+
+letBinding :: Parser Statement
+letBinding = lexeme $ do
   keyword "let"
   v <- identifier
   _ <- symbol "="
-  e <- boolExpr
-  return $ Let v e
+  e <- expr
+  return $ LetBinding v e
+
+assertion :: Parser Statement
+assertion = lexeme $ do
+  keyword "assert"
+  e <- expr
+  return $ Assertion e
 
 -- Entry point
 
 statement :: Parser Statement
 statement = do
-  st <- varStmt <|> letStmt
+  st <- varDeclaration <|> letBinding <|> assertion
   return st
 
 program :: Parser Program
