@@ -1,17 +1,16 @@
 module Main (main) where
 
-import Data.Void
 import Text.Megaparsec
 
 import Parser
-
-smtl :: String -> String -> Either (ParseErrorBundle String Void) Program
-smtl path content = parse program path content
+import TypeChecker
 
 main :: IO ()
 main = do
   let path = "./example.smtl"
   content <- readFile path
-  case smtl path content of
+  case parseProgram path content of
     Left e -> putStrLn $ errorBundlePretty e
-    Right p -> print $ p
+    Right p -> case checkProgram p of
+      Left e -> putStrLn $ "Type error: " ++ show e
+      Right typedProgram -> putStrLn $ show typedProgram

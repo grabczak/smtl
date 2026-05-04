@@ -12,7 +12,7 @@ let not = ~p
 let implies = p => q
 let iff = p <=> q
 
-let f = (p \/ q) /\ (r => s)
+let f = (p \/ q) /\ (q => p)
 let de_morgan = (p /\ q) <=> ~ (~ p \/ ~ q)
 
 let lt = x < y

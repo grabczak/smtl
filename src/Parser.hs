@@ -1,13 +1,6 @@
 {-# LANGUAGE GADTs #-}
 
-module Parser (
-  Identifier,
-  Type (..),
-  Expr (..),
-  Statement (..),
-  Program (..),
-  program,
-) where
+module Parser (parseProgram) where
 
 import Control.Monad.Combinators.Expr
 import Data.Void
@@ -15,9 +8,11 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
 
--- Primitives
+import AST
 
-type Parser = Parsec Void String
+type Error = Void
+type Input = String
+type Parser = Parsec Error Input
 
 sc :: Parser ()
 sc =
@@ -34,46 +29,6 @@ symbol = L.symbol sc
 
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
-
--- AST
-
-type Identifier = String
-
-data Type = Bool | Int
-  deriving (Show)
-
--- Untyped expression, used during parsing before type checking
-data Expr
-  = Var Identifier
-  | BoolLit Bool
-  | IntLit Int
-  | Not Expr
-  | Neg Expr
-  | And Expr Expr
-  | Or Expr Expr
-  | Implies Expr Expr
-  | Iff Expr Expr
-  | Add Expr Expr
-  | Sub Expr Expr
-  | Mul Expr Expr
-  | Eq Expr Expr
-  | Neq Expr Expr
-  | Lt Expr Expr
-  | Gt Expr Expr
-  | Leq Expr Expr
-  | Geq Expr Expr
-  deriving (Show)
-
-data Statement
-  = VarDeclaration Identifier Type
-  | LetBinding Identifier Expr
-  | Assertion Expr
-  deriving (Show)
-
-data Program = Program [Statement]
-
-instance Show Program where
-  show (Program stmts) = unlines $ map show stmts
 
 reservedWords :: [String]
 reservedWords =
@@ -100,51 +55,51 @@ identifier = lexeme $ do
     then fail $ "Keyword '" ++ name ++ "' cannot be used as an identifier"
     else return name
 
-bool, int :: Parser Type
-bool = lexeme $ keyword "bool" >> return Bool
-int = lexeme $ keyword "int" >> return Int
+bool, int :: Parser UType
+bool = lexeme $ keyword "bool" >> return UBool
+int = lexeme $ keyword "int" >> return UInt
 
-var :: Parser Expr
+var :: Parser UExpr
 var = lexeme $ do
   v <- identifier
-  return $ Var v
+  return $ UVar v
 
-boolLit :: Parser Expr
+boolLit :: Parser UExpr
 boolLit = lexeme $ do
   b <- (keyword "T" >> return True) <|> (keyword "F" >> return False)
-  return $ BoolLit b
+  return $ UBoolLit b
 
-intLit :: Parser Expr
+intLit :: Parser UExpr
 intLit = lexeme $ do
   n <- L.decimal
-  return $ IntLit n
+  return $ UIntLit n
 
-operatorTable :: [[Operator Parser Expr]]
+operatorTable :: [[Operator Parser UExpr]]
 operatorTable =
   [
-    [ Prefix (symbol "~" >> return Not)
-    , Prefix (symbol "-" >> return Neg)
+    [ Prefix (symbol "~" >> return UNot)
+    , Prefix (symbol "-" >> return UNeg)
     ]
-  , [InfixL (symbol "*" >> return Mul)]
+  , [InfixL (symbol "*" >> return UMul)]
   ,
-    [ InfixL (symbol "+" >> return Add)
-    , InfixL (symbol "-" >> return Sub)
+    [ InfixL (symbol "+" >> return UAdd)
+    , InfixL (symbol "-" >> return USub)
     ]
   ,
-    [ InfixN (try (symbol "==") >> return Eq)
-    , InfixN (try (symbol "!=") >> return Neq)
-    , InfixN (try (symbol "<=>") >> return Iff)
-    , InfixN (try (symbol "<=") >> return Leq)
-    , InfixN (try (symbol ">=") >> return Geq)
-    , InfixN (symbol "<" >> return Lt)
-    , InfixN (symbol ">" >> return Gt)
+    [ InfixN (try (symbol "==") >> return UEq)
+    , InfixN (try (symbol "!=") >> return UNeq)
+    , InfixN (try (symbol "<=>") >> return UIff)
+    , InfixN (try (symbol "<=") >> return ULeq)
+    , InfixN (try (symbol ">=") >> return UGeq)
+    , InfixN (symbol "<" >> return ULt)
+    , InfixN (symbol ">" >> return UGt)
     ]
-  , [InfixL (symbol "/\\" >> return And)]
-  , [InfixL (symbol "\\/" >> return Or)]
-  , [InfixR (try (symbol "=>") >> return Implies)]
+  , [InfixL (symbol "/\\" >> return UAnd)]
+  , [InfixL (symbol "\\/" >> return UOr)]
+  , [InfixR (try (symbol "=>") >> return UImplies)]
   ]
 
-term :: Parser Expr
+term :: Parser UExpr
 term =
   choice
     [ parens expr
@@ -153,41 +108,42 @@ term =
     , var
     ]
 
-expr :: Parser Expr
+expr :: Parser UExpr
 expr = makeExprParser term operatorTable
 
-varDeclaration :: Parser Statement
-varDeclaration = lexeme $ do
+declareVar :: Parser UStatement
+declareVar = lexeme $ do
   keyword "var"
   v <- identifier
   _ <- symbol ":"
   t <- bool <|> int
-  return $ VarDeclaration v t
+  return $ UDeclareVar v t
 
-letBinding :: Parser Statement
+letBinding :: Parser UStatement
 letBinding = lexeme $ do
   keyword "let"
   v <- identifier
   _ <- symbol "="
   e <- expr
-  return $ LetBinding v e
+  return $ ULetBinding v e
 
-assertion :: Parser Statement
+assertion :: Parser UStatement
 assertion = lexeme $ do
   keyword "assert"
   e <- expr
-  return $ Assertion e
+  return $ UAssertion e
 
--- Entry point
-
-statement :: Parser Statement
+statement :: Parser UStatement
 statement = do
-  st <- varDeclaration <|> letBinding <|> assertion
+  st <- declareVar <|> letBinding <|> assertion
   return st
 
-program :: Parser Program
+program :: Parser UProgram
 program = do
   sc
   stmts <- many statement
   eof
-  return $ Program stmts
+  return $ UProgram stmts
+
+parseProgram :: String -> String -> Either (ParseErrorBundle Input Error) UProgram
+parseProgram path content = parse program path content
