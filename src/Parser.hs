@@ -66,15 +66,15 @@ identifier = lexeme $ do
 locate :: Parser a -> Parser (Located a)
 locate p = Located <$> getSourcePos <*> p
 
-locateUnary :: String -> (Expr -> Expr) -> Parser (LExpr -> LExpr)
+locateUnary :: String -> (LExpr -> Expr) -> Parser (LExpr -> LExpr)
 locateUnary op constr = do
   _ <- symbol op
-  return $ \e -> Located (loc e) (constr (node e))
+  return $ \e -> Located (loc e) (constr e)
 
-locateBinary :: String -> (Expr -> Expr -> Expr) -> Parser (LExpr -> LExpr -> LExpr)
+locateBinary :: String -> (LExpr -> LExpr -> Expr) -> Parser (LExpr -> LExpr -> LExpr)
 locateBinary op constr = do
   _ <- symbol op
-  return $ \e1 e2 -> Located (loc e1) (constr (node e1) (node e2))
+  return $ \e1 e2 -> Located (loc e1) (constr e1 e2)
 
 -- Expressions and statements
 
@@ -133,31 +133,33 @@ term =
 expr :: Parser LExpr
 expr = makeExprParser term operatorTable
 
-declareVar :: Parser LStatement
-declareVar = locate $ lexeme $ do
+-- Statements
+
+declare :: Parser LStatement
+declare = locate $ lexeme $ do
   keyword "var"
   v <- identifier
   _ <- symbol ":"
   t <- bool <|> int
   return $ Declare v t
 
-letBinding :: Parser LStatement
-letBinding = locate $ lexeme $ do
+assign :: Parser LStatement
+assign = locate $ lexeme $ do
   keyword "let"
   v <- identifier
   _ <- symbol "="
   e <- expr
   return $ Assign v e
 
-assertion :: Parser LStatement
-assertion = locate $ lexeme $ do
+assert :: Parser LStatement
+assert = locate $ lexeme $ do
   keyword "assert"
   e <- expr
   return $ Assert e
 
 statement :: Parser LStatement
 statement = do
-  st <- declareVar <|> letBinding <|> assertion
+  st <- declare <|> assign <|> assert
   return st
 
 -- Entry point

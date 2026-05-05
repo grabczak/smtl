@@ -31,16 +31,11 @@ typeErrorPretty file err = case err of
         pointer = replicate (max 0 (c - 1)) ' ' ++ "^"
         lineStr = show l
         spacing = replicate (length lineStr + 1) ' '
-    {- FOURMOLU_DISABLE -}
-     in name ++ ":" ++ lineStr ++ ":" ++ show c ++ ":\n" ++
-        spacing ++ "|\n" ++
-        lineStr ++ " | " ++ content ++ "\n" ++
-        spacing ++ "| " ++ pointer ++ "\n" ++
-        msg
-    {- FOURMOLU_ENABLE -}
+     in name ++ ":" ++ lineStr ++ ":" ++ show c ++ ":\n" ++ spacing ++ "|\n" ++ lineStr ++ " | " ++ content ++ "\n" ++ spacing ++ "| " ++ pointer ++ "\n" ++ msg
 
 type Env = M.Map Identifier TType
 
+-- TODO: This needs some serious refactoring
 checkExpr :: Env -> LExpr -> Either TypeError TType
 checkExpr env (Located pos expr) = case expr of
   Var v -> case M.lookup v env of
@@ -49,93 +44,106 @@ checkExpr env (Located pos expr) = case expr of
   BoolLit _ -> Right TBool
   IntLit _ -> Right TInt
   Not p -> do
-    p' <- checkExpr env (Located pos p)
+    p' <- checkExpr env p
     case p' of
       TBool -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool p'
+      _ -> Left $ TypeMismatch (loc p) TBool p'
   And p q -> do
-    p' <- checkExpr env (Located pos p)
-    q' <- checkExpr env (Located pos q)
+    p' <- checkExpr env p
+    q' <- checkExpr env q
     case (p', q') of
       (TBool, TBool) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
+      _ -> Left $ TypeMismatch (loc p) TBool p'
   Or p q -> do
-    p' <- checkExpr env (Located pos p)
-    q' <- checkExpr env (Located pos q)
+    p' <- checkExpr env p
+    q' <- checkExpr env q
     case (p', q') of
       (TBool, TBool) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
+      _ -> Left $ TypeMismatch (loc p) TBool p'
   Implies p q -> do
-    p' <- checkExpr env (Located pos p)
-    q' <- checkExpr env (Located pos q)
+    p' <- checkExpr env p
+    q' <- checkExpr env q
     case (p', q') of
       (TBool, TBool) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
+      _ -> Left $ TypeMismatch (loc p) TBool p'
   Iff p q -> do
-    p' <- checkExpr env (Located pos p)
-    q' <- checkExpr env (Located pos q)
+    p' <- checkExpr env p
+    q' <- checkExpr env q
     case (p', q') of
       (TBool, TBool) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
+      _ -> Left $ TypeMismatch (loc p) TBool p'
   Neg m -> do
-    m' <- checkExpr env (Located pos m)
+    m' <- checkExpr env m
     case m' of
       TInt -> Right TInt
-      _ -> Left $ TypeMismatch pos TInt m'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Add m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TInt
-      _ -> Left $ TypeMismatch pos TInt TInt
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Sub m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TInt
-      _ -> Left $ TypeMismatch pos TInt TInt
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Mul m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TInt
-      _ -> Left $ TypeMismatch pos TInt TInt
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Eq m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Neq m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Lt m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Gt m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Leq m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
   Geq m n -> do
-    m' <- checkExpr env (Located pos m)
-    n' <- checkExpr env (Located pos n)
+    m' <- checkExpr env m
+    n' <- checkExpr env n
     case (m', n') of
       (TInt, TInt) -> Right TBool
-      _ -> Left $ TypeMismatch pos TBool TBool
+      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
+      _ -> Left $ TypeMismatch (loc m) TInt m'
 
 checkStatement :: Env -> LStatement -> Either TypeError Env
 checkStatement env (Located pos stmt) = case stmt of

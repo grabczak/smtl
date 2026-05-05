@@ -9,7 +9,8 @@ module AST (
   LStatement,
 ) where
 
-import Text.Megaparsec (SourcePos)
+import qualified Data.List as L
+import Text.Megaparsec
 
 type Identifier = String
 
@@ -20,26 +21,46 @@ data Expr
     BoolLit Bool
   | IntLit Int
   | -- Logical operators
-    Not Expr
-  | And Expr Expr
-  | Or Expr Expr
-  | Implies Expr Expr
-  | Iff Expr Expr
+    Not LExpr
+  | And LExpr LExpr
+  | Or LExpr LExpr
+  | Implies LExpr LExpr
+  | Iff LExpr LExpr
   | -- Arithmetic operators
-    Neg Expr
-  | Add Expr Expr
-  | Sub Expr Expr
-  | Mul Expr Expr
+    Neg LExpr
+  | Add LExpr LExpr
+  | Sub LExpr LExpr
+  | Mul LExpr LExpr
   | -- Comparison operators
-    Eq Expr Expr
-  | Neq Expr Expr
-  | Lt Expr Expr
-  | Gt Expr Expr
-  | Leq Expr Expr
-  | Geq Expr Expr
-  deriving (Show)
+    Eq LExpr LExpr
+  | Neq LExpr LExpr
+  | Lt LExpr LExpr
+  | Gt LExpr LExpr
+  | Leq LExpr LExpr
+  | Geq LExpr LExpr
+
+instance Show Expr where
+  show (Var v) = v
+  show (BoolLit b) = show b
+  show (IntLit n) = show n
+  show (Not e) = "~" ++ show e
+  show (And e1 e2) = "(" ++ show e1 ++ " /\\ " ++ show e2 ++ ")"
+  show (Or e1 e2) = "(" ++ show e1 ++ " \\/ " ++ show e2 ++ ")"
+  show (Implies e1 e2) = "(" ++ show e1 ++ " => " ++ show e2 ++ ")"
+  show (Iff e1 e2) = "(" ++ show e1 ++ " <=> " ++ show e2 ++ ")"
+  show (Neg e) = "-" ++ show e
+  show (Add e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")"
+  show (Sub e1 e2) = "(" ++ show e1 ++ " - " ++ show e2 ++ ")"
+  show (Mul e1 e2) = "(" ++ show e1 ++ " * " ++ show e2 ++ ")"
+  show (Eq e1 e2) = "(" ++ show e1 ++ " == " ++ show e2 ++ ")"
+  show (Neq e1 e2) = "(" ++ show e1 ++ " != " ++ show e2 ++ ")"
+  show (Lt e1 e2) = "(" ++ show e1 ++ " < " ++ show e2 ++ ")"
+  show (Gt e1 e2) = "(" ++ show e1 ++ " > " ++ show e2 ++ ")"
+  show (Leq e1 e2) = "(" ++ show e1 ++ " <= " ++ show e2 ++ ")"
+  show (Geq e1 e2) = "(" ++ show e1 ++ " >= " ++ show e2 ++ ")"
 
 data TType = TBool | TInt
+  deriving (Eq)
 
 instance Show TType where
   show TBool = "bool"
@@ -59,11 +80,15 @@ data Statement
   = Declare Identifier TType
   | Assign Identifier LExpr
   | Assert LExpr
-  deriving (Show)
+
+instance Show Statement where
+  show (Declare v t) = "var " ++ v ++ " : " ++ show t
+  show (Assign v e) = "let " ++ v ++ " = " ++ show e
+  show (Assert e) = "assert " ++ show e
 
 type LStatement = Located Statement
 
 data Program = Program [LStatement]
 
 instance Show Program where
-  show (Program stmts) = unlines $ map show stmts
+  show (Program stmts) = L.intercalate "\n" $ map show stmts
