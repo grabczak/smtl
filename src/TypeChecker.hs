@@ -35,7 +35,22 @@ typeErrorPretty file err = case err of
 
 type Env = M.Map Identifier TType
 
--- TODO: This needs some serious refactoring
+expectUnary :: Env -> LExpr -> TType -> TType -> Either TypeError TType
+expectUnary env e expected result = do
+  e' <- checkExpr env e
+  case e' of
+    e'' | e'' == expected -> Right result
+    _ -> Left $ TypeMismatch (loc e) expected e'
+
+expectBinary :: Env -> LExpr -> LExpr -> TType -> TType -> Either TypeError TType
+expectBinary env e f expected result = do
+  e' <- checkExpr env e
+  f' <- checkExpr env f
+  case (e', f') of
+    (e'', f'') | e'' == expected && f'' == expected -> Right result
+    (e'', _) | e'' /= expected -> Left $ TypeMismatch (loc e) expected f'
+    _ -> Left $ TypeMismatch (loc f) expected f'
+
 checkExpr :: Env -> LExpr -> Either TypeError TType
 checkExpr env (Located pos expr) = case expr of
   Var v -> case M.lookup v env of
@@ -43,107 +58,21 @@ checkExpr env (Located pos expr) = case expr of
     Nothing -> Left $ UnboundVariable pos v
   BoolLit _ -> Right TBool
   IntLit _ -> Right TInt
-  Not p -> do
-    p' <- checkExpr env p
-    case p' of
-      TBool -> Right TBool
-      _ -> Left $ TypeMismatch (loc p) TBool p'
-  And p q -> do
-    p' <- checkExpr env p
-    q' <- checkExpr env q
-    case (p', q') of
-      (TBool, TBool) -> Right TBool
-      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
-      _ -> Left $ TypeMismatch (loc p) TBool p'
-  Or p q -> do
-    p' <- checkExpr env p
-    q' <- checkExpr env q
-    case (p', q') of
-      (TBool, TBool) -> Right TBool
-      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
-      _ -> Left $ TypeMismatch (loc p) TBool p'
-  Implies p q -> do
-    p' <- checkExpr env p
-    q' <- checkExpr env q
-    case (p', q') of
-      (TBool, TBool) -> Right TBool
-      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
-      _ -> Left $ TypeMismatch (loc p) TBool p'
-  Iff p q -> do
-    p' <- checkExpr env p
-    q' <- checkExpr env q
-    case (p', q') of
-      (TBool, TBool) -> Right TBool
-      (TBool, _) -> Left $ TypeMismatch (loc q) TBool q'
-      _ -> Left $ TypeMismatch (loc p) TBool p'
-  Neg m -> do
-    m' <- checkExpr env m
-    case m' of
-      TInt -> Right TInt
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Add m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TInt
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Sub m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TInt
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Mul m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TInt
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Eq m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TBool
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Neq m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TBool
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Lt m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TBool
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Gt m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TBool
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Leq m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TBool
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
-  Geq m n -> do
-    m' <- checkExpr env m
-    n' <- checkExpr env n
-    case (m', n') of
-      (TInt, TInt) -> Right TBool
-      (TInt, _) -> Left $ TypeMismatch (loc n) TInt n'
-      _ -> Left $ TypeMismatch (loc m) TInt m'
+  Not p -> expectUnary env p TBool TBool
+  And p q -> expectBinary env p q TBool TBool
+  Or p q -> expectBinary env p q TBool TBool
+  Implies p q -> expectBinary env p q TBool TBool
+  Iff p q -> expectBinary env p q TBool TBool
+  Neg m -> expectUnary env m TInt TInt
+  Add m n -> expectBinary env m n TInt TInt
+  Sub m n -> expectBinary env m n TInt TInt
+  Mul m n -> expectBinary env m n TInt TInt
+  Eq m n -> expectBinary env m n TInt TBool
+  Neq m n -> expectBinary env m n TInt TBool
+  Lt m n -> expectBinary env m n TInt TBool
+  Gt m n -> expectBinary env m n TInt TBool
+  Leq m n -> expectBinary env m n TInt TBool
+  Geq m n -> expectBinary env m n TInt TBool
 
 checkStatement :: Env -> LStatement -> Either TypeError Env
 checkStatement env (Located pos stmt) = case stmt of
