@@ -12,5 +12,5 @@ main = do
   case parseProgram path content of
     Left e -> putStrLn $ errorBundlePretty e
     Right p -> case checkProgram p of
-      Left e -> putStrLn $ show e
+      Left e -> putStrLn $ typeErrorPretty content e
       Right p' -> putStrLn $ show p'

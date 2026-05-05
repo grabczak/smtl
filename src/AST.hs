@@ -40,7 +40,10 @@ data Expr
   deriving (Show)
 
 data TType = TBool | TInt
-  deriving (Show)
+
+instance Show TType where
+  show TBool = "bool"
+  show TInt = "int"
 
 data Located a = Located
   { loc :: SourcePos

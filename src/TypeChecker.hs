@@ -1,26 +1,51 @@
 {-# LANGUAGE GADTs #-}
 
-module TypeChecker (checkProgram) where
+module TypeChecker (checkProgram, typeErrorPretty) where
 
 import Control.Monad
 import qualified Data.Map as M
+import Text.Megaparsec
 
 import AST
-import Text.Megaparsec (SourcePos)
-
-type Env = M.Map Identifier TType
 
 data TypeError
-  = UnboundVar SourcePos Identifier
+  = UnboundVariable SourcePos Identifier
   | DuplicateIdentifier SourcePos Identifier
   | TypeMismatch SourcePos TType TType
   deriving (Show)
+
+typeErrorPretty :: String -> TypeError -> String
+typeErrorPretty file err = case err of
+  TypeMismatch (SourcePos name line column) expected actual ->
+    go name line column ("expected " ++ show expected ++ ", but got " ++ show actual)
+  UnboundVariable (SourcePos name line column) var ->
+    go name line column (var ++ " is not defined")
+  DuplicateIdentifier (SourcePos name line column) var ->
+    go name line column (var ++ " is already defined")
+ where
+  go name line column msg =
+    let l = unPos line
+        c = unPos column
+        fileLines = lines file
+        content = if l > 0 && l <= length fileLines then fileLines !! (l - 1) else ""
+        pointer = replicate (max 0 (c - 1)) ' ' ++ "^"
+        lineStr = show l
+        spacing = replicate (length lineStr + 1) ' '
+    {- FOURMOLU_DISABLE -}
+     in name ++ ":" ++ lineStr ++ ":" ++ show c ++ ":\n" ++
+        spacing ++ "|\n" ++
+        lineStr ++ " | " ++ content ++ "\n" ++
+        spacing ++ "| " ++ pointer ++ "\n" ++
+        msg
+    {- FOURMOLU_ENABLE -}
+
+type Env = M.Map Identifier TType
 
 checkExpr :: Env -> LExpr -> Either TypeError TType
 checkExpr env (Located pos expr) = case expr of
   Var v -> case M.lookup v env of
     Just v' -> Right v'
-    Nothing -> Left $ UnboundVar pos v
+    Nothing -> Left $ UnboundVariable pos v
   BoolLit _ -> Right TBool
   IntLit _ -> Right TInt
   Not p -> do
@@ -119,7 +144,7 @@ checkStatement env (Located pos stmt) = case stmt of
     False -> Right $ M.insert v t env
   Assign v e -> do
     t <- checkExpr env e
-    return $ M.insert v t env
+    Right $ M.insert v t env
   Assert e -> do
     t <- checkExpr env e
     case t of
