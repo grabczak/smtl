@@ -10,9 +10,13 @@ import qualified Text.Megaparsec.Char.Lexer as L
 
 import AST
 
+-- Parser
+
 type Error = Void
 type Input = String
 type Parser = Parsec Error Input
+
+-- Primitives
 
 sc :: Parser ()
 sc =
@@ -29,6 +33,8 @@ symbol = L.symbol sc
 
 parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
+
+-- Keywords and identifiers
 
 reservedWords :: [String]
 reservedWords =
@@ -55,95 +61,113 @@ identifier = lexeme $ do
     then fail $ "Keyword '" ++ name ++ "' cannot be used as an identifier"
     else return name
 
-bool, int :: Parser UType
-bool = lexeme $ keyword "bool" >> return UBool
-int = lexeme $ keyword "int" >> return UInt
+-- Locators
 
-var :: Parser UExpr
+locate :: Parser a -> Parser (Located a)
+locate p = Located <$> getSourcePos <*> p
+
+locateUnary :: String -> (Expr -> Expr) -> Parser (LExpr -> LExpr)
+locateUnary op constr = do
+  _ <- symbol op
+  return $ \e -> Located (loc e) (constr (node e))
+
+locateBinary :: String -> (Expr -> Expr -> Expr) -> Parser (LExpr -> LExpr -> LExpr)
+locateBinary op constr = do
+  _ <- symbol op
+  return $ \e1 e2 -> Located (loc e1) (constr (node e1) (node e2))
+
+-- Expressions and statements
+
+bool, int :: Parser TType
+bool = lexeme $ keyword "bool" >> return TBool
+int = lexeme $ keyword "int" >> return TInt
+
+var :: Parser Expr
 var = lexeme $ do
   v <- identifier
-  return $ UVar v
+  return $ Var v
 
-boolLit :: Parser UExpr
+boolLit :: Parser Expr
 boolLit = lexeme $ do
   b <- (keyword "T" >> return True) <|> (keyword "F" >> return False)
-  return $ UBoolLit b
+  return $ BoolLit b
 
-intLit :: Parser UExpr
+intLit :: Parser Expr
 intLit = lexeme $ do
   n <- L.decimal
-  return $ UIntLit n
+  return $ IntLit n
 
-operatorTable :: [[Operator Parser UExpr]]
+{- FOURMOLU_DISABLE -}
+operatorTable :: [[Operator Parser LExpr]]
 operatorTable =
-  [
-    [ Prefix (symbol "~" >> return UNot)
-    , Prefix (symbol "-" >> return UNeg)
+  [ [ Prefix  (locateUnary "~"   Not)
+    , Prefix  (locateUnary "-"   Neg)
     ]
-  , [InfixL (symbol "*" >> return UMul)]
-  ,
-    [ InfixL (symbol "+" >> return UAdd)
-    , InfixL (symbol "-" >> return USub)
+  , [ InfixL  (locateBinary "*"   Mul) ]
+  , [ InfixL  (locateBinary "+"   Add)
+    , InfixL  (locateBinary "-"   Sub)
     ]
-  ,
-    [ InfixN (try (symbol "==") >> return UEq)
-    , InfixN (try (symbol "!=") >> return UNeq)
-    , InfixN (try (symbol "<=>") >> return UIff)
-    , InfixN (try (symbol "<=") >> return ULeq)
-    , InfixN (try (symbol ">=") >> return UGeq)
-    , InfixN (symbol "<" >> return ULt)
-    , InfixN (symbol ">" >> return UGt)
+  , [ InfixN  (locateBinary "<=>" Iff)
+    , InfixN  (locateBinary "==" Eq)
+    , InfixN  (locateBinary "!=" Neq)
+    , InfixN  (locateBinary "<=" Leq)
+    , InfixN  (locateBinary ">=" Geq)
+    , InfixN  (locateBinary "<"  Lt)
+    , InfixN  (locateBinary ">"  Gt)
     ]
-  , [InfixL (symbol "/\\" >> return UAnd)]
-  , [InfixL (symbol "\\/" >> return UOr)]
-  , [InfixR (try (symbol "=>") >> return UImplies)]
+  , [ InfixL  (locateBinary "/\\" And) ]
+  , [ InfixL  (locateBinary "\\/" Or)  ]
+  , [ InfixR  (locateBinary "=>"  Implies) ] 
   ]
+{- FOURMOLU_ENABLE -}
 
-term :: Parser UExpr
+term :: Parser LExpr
 term =
   choice
     [ parens expr
-    , boolLit
-    , intLit
-    , var
+    , locate boolLit
+    , locate intLit
+    , locate var
     ]
 
-expr :: Parser UExpr
+expr :: Parser LExpr
 expr = makeExprParser term operatorTable
 
-declareVar :: Parser UStatement
-declareVar = lexeme $ do
+declareVar :: Parser LStatement
+declareVar = locate $ lexeme $ do
   keyword "var"
   v <- identifier
   _ <- symbol ":"
   t <- bool <|> int
-  return $ UDeclareVar v t
+  return $ Declare v t
 
-letBinding :: Parser UStatement
-letBinding = lexeme $ do
+letBinding :: Parser LStatement
+letBinding = locate $ lexeme $ do
   keyword "let"
   v <- identifier
   _ <- symbol "="
   e <- expr
-  return $ ULetBinding v e
+  return $ Assign v e
 
-assertion :: Parser UStatement
-assertion = lexeme $ do
+assertion :: Parser LStatement
+assertion = locate $ lexeme $ do
   keyword "assert"
   e <- expr
-  return $ UAssertion e
+  return $ Assert e
 
-statement :: Parser UStatement
+statement :: Parser LStatement
 statement = do
   st <- declareVar <|> letBinding <|> assertion
   return st
 
-program :: Parser UProgram
+-- Entry point
+
+program :: Parser Program
 program = do
   sc
-  stmts <- many statement
+  statements <- many statement
   eof
-  return $ UProgram stmts
+  return $ Program statements
 
-parseProgram :: String -> String -> Either (ParseErrorBundle Input Error) UProgram
+parseProgram :: String -> String -> Either (ParseErrorBundle Input Error) Program
 parseProgram path content = parse program path content
