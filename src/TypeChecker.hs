@@ -79,9 +79,11 @@ checkStatement env (Located pos stmt) = case stmt of
   Declare v t -> case M.member v env of
     True -> Left $ DuplicateIdentifier pos v
     False -> Right $ M.insert v t env
-  Assign v e -> do
-    t <- checkExpr env e
-    Right $ M.insert v t env
+  Assign v e -> case M.member v env of
+    True -> Left $ DuplicateIdentifier pos v
+    False -> do
+      t <- checkExpr env e
+      Right $ M.insert v t env
   Assert e -> do
     t <- checkExpr env e
     case t of

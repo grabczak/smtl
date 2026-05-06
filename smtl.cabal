@@ -28,6 +28,7 @@ library
       AST
       Lib
       Parser
+      Solver
       TypeChecker
   other-modules:
       Paths_smtl
@@ -41,6 +42,7 @@ library
     , containers
     , megaparsec
     , parser-combinators
+    , process
   default-language: Haskell2010
 
 executable smtl-exe
@@ -57,6 +59,7 @@ executable smtl-exe
     , containers
     , megaparsec
     , parser-combinators
+    , process
     , smtl
   default-language: Haskell2010
 
@@ -76,5 +79,6 @@ test-suite smtl-test
     , containers
     , megaparsec
     , parser-combinators
+    , process
     , smtl
   default-language: Haskell2010
