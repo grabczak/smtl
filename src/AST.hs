@@ -1,18 +1,27 @@
 module AST (
+  Located (..),
   Identifier,
+  Type (..),
   Expr (..),
-  TType (..),
   Statement (..),
   Program (..),
-  Located (..),
-  LExpr,
-  LStatement,
+  TypeError (..),
 ) where
 
-import qualified Data.List as L
 import Text.Megaparsec
 
+data Located a = Located
+  { loc :: SourcePos
+  , node :: a
+  }
+
+instance (Show a) => Show (Located a) where
+  show (Located _ n) = show n
+
 type Identifier = String
+
+data Type = Bool | Int
+  deriving (Show, Eq)
 
 data Expr
   = -- Variables
@@ -21,74 +30,60 @@ data Expr
     BoolLit Bool
   | IntLit Int
   | -- Logical operators
-    Not LExpr
-  | And LExpr LExpr
-  | Or LExpr LExpr
-  | Implies LExpr LExpr
-  | Iff LExpr LExpr
+    Not (Located Expr)
+  | And (Located Expr) (Located Expr)
+  | Or (Located Expr) (Located Expr)
+  | Implies (Located Expr) (Located Expr)
+  | Iff (Located Expr) (Located Expr)
   | -- Arithmetic operators
-    Neg LExpr
-  | Add LExpr LExpr
-  | Sub LExpr LExpr
-  | Mul LExpr LExpr
+    Neg (Located Expr)
+  | Add (Located Expr) (Located Expr)
+  | Sub (Located Expr) (Located Expr)
+  | Mul (Located Expr) (Located Expr)
   | -- Comparison operators
-    Eq LExpr LExpr
-  | Neq LExpr LExpr
-  | Lt LExpr LExpr
-  | Gt LExpr LExpr
-  | Leq LExpr LExpr
-  | Geq LExpr LExpr
+    Eq (Located Expr) (Located Expr)
+  | Neq (Located Expr) (Located Expr)
+  | Lt (Located Expr) (Located Expr)
+  | Gt (Located Expr) (Located Expr)
+  | Leq (Located Expr) (Located Expr)
+  | Geq (Located Expr) (Located Expr)
 
 instance Show Expr where
-  show (Var v) = show v
+  show (Var x) = x
   show (BoolLit b) = show b
-  show (IntLit n) = show n
-  show (Not e) = "(Not " ++ show e ++ ")"
-  show (And e1 e2) = "(And " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Or e1 e2) = "(Or " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Implies e1 e2) = "(Implies " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Iff e1 e2) = "(Iff " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Neg e) = "(Neg " ++ show e ++ ")"
-  show (Add e1 e2) = "(Add " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Sub e1 e2) = "(Sub " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Mul e1 e2) = "(Mul " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Eq e1 e2) = "(Eq " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Neq e1 e2) = "(Neq " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Lt e1 e2) = "(Lt " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Gt e1 e2) = "(Gt " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Leq e1 e2) = "(Leq " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Geq e1 e2) = "(Geq " ++ show e1 ++ " " ++ show e2 ++ ")"
-
-data TType = TBool | TInt
-  deriving (Eq)
-
-instance Show TType where
-  show TBool = "Bool"
-  show TInt = "Int"
-
-data Located a = Located
-  { loc :: SourcePos
-  , node :: a
-  }
-
-instance (Show a) => Show (Located a) where
-  show l = show $ node l
-
-type LExpr = Located Expr
+  show (IntLit i) = show i
+  show (Not e) = "(Not " ++ show (node e) ++ ")"
+  show (And e1 e2) = "(And " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Or e1 e2) = "(Or " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Implies e1 e2) = "(Implies " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Iff e1 e2) = "(Iff " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Neg e) = "(Neg " ++ show (node e) ++ ")"
+  show (Add e1 e2) = "(Add " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Sub e1 e2) = "(Sub " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Mul e1 e2) = "(Mul " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Eq e1 e2) = "(Eq " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Neq e1 e2) = "(Neq " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Lt e1 e2) = "(Lt " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Gt e1 e2) = "(Gt " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Leq e1 e2) = "(Leq " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
+  show (Geq e1 e2) = "(Geq " ++ show (node e1) ++ " " ++ show (node e2) ++ ")"
 
 data Statement
-  = Declare Identifier TType
-  | Assign Identifier LExpr
-  | Assert LExpr
+  = Declare Identifier Type
+  | Assign Identifier (Located Expr)
+  | Assert (Located Expr)
 
 instance Show Statement where
-  show (Declare v t) = "Declare " ++ v ++ " " ++ show t
-  show (Assign v e) = "Assign " ++ v ++ " " ++ show e
-  show (Assert e) = "Assert " ++ show e
+  show (Declare x t) = "Declare " ++ x ++ " " ++ show t
+  show (Assign x e) = "Assign " ++ x ++ " " ++ show (node e)
+  show (Assert e) = "Assert " ++ show (node e)
 
-type LStatement = Located Statement
-
-data Program = Program [LStatement]
+data Program = Program [Located Statement]
 
 instance Show Program where
-  show (Program stmts) = L.intercalate "\n" $ map show stmts
+  show (Program statements) = unlines $ map show statements
+
+data TypeError
+  = UnboundVariable SourcePos Identifier
+  | DuplicateIdentifier SourcePos Identifier
+  | TypeMismatch SourcePos Type Type
