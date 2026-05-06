@@ -1,5 +1,3 @@
-{-# LANGUAGE GADTs #-}
-
 module Parser (parseProgram) where
 
 import Control.Monad.Combinators.Expr
