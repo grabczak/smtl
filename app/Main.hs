@@ -44,6 +44,8 @@ main = do
             Left typeErr -> putStrLn $ typeErrorPretty content typeErr
             Right correctProgram -> do
               let z3Input = smtlib correctProgram
+              putStrLn "Z3 Input:\n"
               putStrLn z3Input
+              putStrLn "Z3 Result:\n"
               z3Result <- catch (callZ3 z3Input) handleError
-              putStrLn z3Result
+              putStr z3Result
