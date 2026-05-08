@@ -49,17 +49,17 @@ checkExpr env (Loc pos expr) = case expr of
   Geq m n -> checkOp2 env m n Int Bool
 
 checkStatement :: Env -> (Loc Statement) -> Either TypeError Env
-checkStatement env (Loc pos statement) = case statement of
-  Declare v t
+checkStatement env (Loc _ statement) = case statement of
+  Declare (Loc pos v) t
     | M.member v env -> Left $ DuplicateIdentifier pos v
     | otherwise -> Right $ M.insert v t env
-  Assign v e
+  Assign (Loc pos v) e
     | M.member v env -> Left $ DuplicateIdentifier pos v
     | otherwise -> do
         t <- checkExpr env e
         Right $ M.insert v t env
-  Assert e -> do
-    t <- checkExpr env e
+  Assert (Loc pos e) -> do
+    t <- checkExpr env (Loc pos e)
     if t == Bool
       then Right env
       else Left $ TypeMismatch pos Bool t

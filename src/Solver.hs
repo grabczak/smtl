@@ -43,7 +43,7 @@ substituteExpr env (Loc pos expr) = Loc pos (substituteExpr' env expr)
 substituteStatement' :: Env -> Statement -> (Env, Statement)
 substituteStatement' env statement = case statement of
   Declare v t -> (env, Declare v t)
-  Assign v e -> (M.insert v e' env, Assign v (substituteExpr env e))
+  Assign (Loc pos v) e -> (M.insert v e' env, Assign (Loc pos v) (substituteExpr env e))
    where
     e' = substituteExpr env e
   Assert e -> (env, Assert (substituteExpr env e))
@@ -88,7 +88,7 @@ smtlibExpr (Loc _ expr) = case expr of
 
 smtlibStatement :: (Loc Statement) -> String
 smtlibStatement (Loc _ statement) = case statement of
-  Declare v t -> smtlibWrap "declare-const" [v, show t]
+  Declare (Loc _ v) t -> smtlibWrap "declare-const" [v, show t]
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""
 

@@ -50,7 +50,7 @@ keyword kw = lexeme $ do
   _ <- string kw
   notFollowedBy alphaNumChar
 
-identifier :: Parser Identifier
+identifier :: Parser (Identifier)
 identifier = lexeme $ do
   first <- letterChar
   rest <- many (alphaNumChar <|> char '_')
@@ -82,18 +82,18 @@ bool, int :: Parser Type
 bool = lexeme $ keyword "bool" >> return Bool
 int = lexeme $ keyword "int" >> return Int
 
-var :: Parser Expr
-var = lexeme $ do
+var :: Parser (Loc Expr)
+var = locate $ lexeme $ do
   v <- identifier
   return $ Var v
 
-boolLit :: Parser Expr
-boolLit = lexeme $ do
+boolLit :: Parser (Loc Expr)
+boolLit = locate $ lexeme $ do
   b <- (keyword "T" >> return True) <|> (keyword "F" >> return False)
   return $ BoolLit b
 
-intLit :: Parser Expr
-intLit = lexeme $ do
+intLit :: Parser (Loc Expr)
+intLit = locate $ lexeme $ do
   n <- L.decimal
   return $ IntLit n
 
@@ -126,9 +126,9 @@ term :: Parser (Loc Expr)
 term =
   choice
     [ parens expr
-    , locate boolLit
-    , locate intLit
-    , locate var
+    , boolLit
+    , intLit
+    , var
     ]
 
 expr :: Parser (Loc Expr)
@@ -139,7 +139,7 @@ expr = makeExprParser term operatorTable
 declare :: Parser (Loc Statement)
 declare = locate $ lexeme $ do
   keyword "var"
-  v <- identifier
+  v <- locate $ identifier
   _ <- symbol ":"
   t <- bool <|> int
   return $ Declare v t
@@ -147,7 +147,7 @@ declare = locate $ lexeme $ do
 assign :: Parser (Loc Statement)
 assign = locate $ lexeme $ do
   keyword "let"
-  v <- identifier
+  v <- locate $ identifier
   _ <- symbol "="
   e <- expr
   return $ Assign v e
