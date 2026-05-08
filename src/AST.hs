@@ -49,7 +49,7 @@ data Expr
   | Geq (Loc Expr) (Loc Expr)
 
 instance Show Expr where
-  show (Var x) = x
+  show (Var v) = v
   show (BoolLit b) = show b
   show (IntLit i) = show i
   show (Not e) = "(Not " ++ show e ++ ")"
@@ -74,8 +74,8 @@ data Statement
   | Assert (Loc Expr)
 
 instance Show Statement where
-  show (Declare x t) = "Declare " ++ show x ++ " " ++ show t
-  show (Assign x e) = "Assign " ++ show x ++ " " ++ show e
+  show (Declare vs t) = "Declare " ++ unwords (map node vs) ++ " " ++ show t
+  show (Assign v e) = "Assign " ++ show v ++ " " ++ show e
   show (Assert e) = "Assert " ++ show e
 
 data Program = Program [Loc Statement]

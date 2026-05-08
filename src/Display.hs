@@ -8,9 +8,9 @@ import Data.Char
 typeErrorPretty :: String -> TypeError -> String
 typeErrorPretty file err = case err of
   UnboundVariable (SourcePos name line column) var ->
-    formatError name line column (var ++ " is not defined")
+    formatError name line column ("unbound variable " ++ "'" ++ var ++ "'")
   DuplicateIdentifier (SourcePos name line column) var ->
-    formatError name line column (var ++ " is already defined")
+    formatError name line column ("duplicate identifier " ++ "'" ++ var ++ "'")
   TypeMismatch (SourcePos name line column) expected actual ->
     formatError name line column ("expected " ++ toLowerCase expected ++ ", but got " ++ toLowerCase actual)
  where
