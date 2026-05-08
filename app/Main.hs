@@ -1,5 +1,8 @@
 module Main (main) where
 
+import Control.Exception
+import System.Environment
+import System.Exit
 import System.IO
 import System.Process
 import Text.Megaparsec
@@ -24,16 +27,19 @@ callZ3 input = do
 
 main :: IO ()
 main = do
-  let path = "./example.smtl"
-  content <- readFile path
-  case parseProgram path content of
-    Left parseErr -> putStrLn $ errorBundlePretty parseErr
-    Right program -> do
-      putStrLn $ show program
-      case checkProgram program of
-        Left typeErr -> putStrLn $ typeErrorPretty content typeErr
-        Right correctProgram -> do
-          let z3Input = smtlib correctProgram
-          putStrLn $ z3Input
-          z3Result <- callZ3 z3Input
-          putStrLn z3Result
+  paths <- getArgs
+  case paths of
+    [] -> putStrLn "Please provide a file path as an argument."
+    (path : _) -> do
+      content <- catch (readFile path) (\e -> (putStrLn $ show (e :: SomeException)) >> exitFailure)
+      case parseProgram path content of
+        Left parseErr -> putStrLn $ errorBundlePretty parseErr
+        Right program -> do
+          putStrLn $ show program
+          case checkProgram program of
+            Left typeErr -> putStrLn $ typeErrorPretty content typeErr
+            Right correctProgram -> do
+              let z3Input = smtlib correctProgram
+              putStrLn z3Input
+              z3Result <- callZ3 z3Input
+              putStrLn z3Result
