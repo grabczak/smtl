@@ -9,14 +9,14 @@ import AST
 
 type Env = M.Map Identifier Type
 
-checkOp1 :: Env -> (Located Expr) -> Type -> Type -> Either TypeError Type
+checkOp1 :: Env -> (Loc Expr) -> Type -> Type -> Either TypeError Type
 checkOp1 env e expected result = do
   e' <- checkExpr env e
   if e' == expected
     then Right result
     else Left $ TypeMismatch (loc e) expected e'
 
-checkOp2 :: Env -> (Located Expr) -> (Located Expr) -> Type -> Type -> Either TypeError Type
+checkOp2 :: Env -> (Loc Expr) -> (Loc Expr) -> Type -> Type -> Either TypeError Type
 checkOp2 env e f expected result = do
   e' <- checkExpr env e
   f' <- checkExpr env f
@@ -27,8 +27,8 @@ checkOp2 env e f expected result = do
         then Left $ TypeMismatch (loc e) expected e'
         else Left $ TypeMismatch (loc f) expected f'
 
-checkExpr :: Env -> (Located Expr) -> Either TypeError Type
-checkExpr env (Located pos expr) = case expr of
+checkExpr :: Env -> (Loc Expr) -> Either TypeError Type
+checkExpr env (Loc pos expr) = case expr of
   Var v -> maybe (Left $ UnboundVariable pos v) Right (M.lookup v env)
   BoolLit _ -> Right Bool
   IntLit _ -> Right Int
@@ -48,8 +48,8 @@ checkExpr env (Located pos expr) = case expr of
   Leq m n -> checkOp2 env m n Int Bool
   Geq m n -> checkOp2 env m n Int Bool
 
-checkStatement :: Env -> (Located Statement) -> Either TypeError Env
-checkStatement env (Located pos statement) = case statement of
+checkStatement :: Env -> (Loc Statement) -> Either TypeError Env
+checkStatement env (Loc pos statement) = case statement of
   Declare v t
     | M.member v env -> Left $ DuplicateIdentifier pos v
     | otherwise -> Right $ M.insert v t env

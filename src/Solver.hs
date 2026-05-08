@@ -7,7 +7,7 @@ import AST
 
 -- Substitute assignments
 
-type Env = M.Map Identifier (Located Expr)
+type Env = M.Map Identifier (Loc Expr)
 
 -- Substitute an expression without location wrapper
 substituteExpr' :: Env -> Expr -> Expr
@@ -36,8 +36,8 @@ substituteExpr' env expr = case expr of
   go = substituteExpr
 
 -- Substitute a located expression
-substituteExpr :: Env -> (Located Expr) -> Located Expr
-substituteExpr env (Located pos expr) = Located pos (substituteExpr' env expr)
+substituteExpr :: Env -> (Loc Expr) -> Loc Expr
+substituteExpr env (Loc pos expr) = Loc pos (substituteExpr' env expr)
 
 -- Substitute a statement without location wrapper
 substituteStatement' :: Env -> Statement -> (Env, Statement)
@@ -49,8 +49,8 @@ substituteStatement' env statement = case statement of
   Assert e -> (env, Assert (substituteExpr env e))
 
 -- Substitute a located statement
-substituteStatement :: Env -> (Located Statement) -> (Env, (Located Statement))
-substituteStatement env (Located pos statement) = (env', Located pos statement')
+substituteStatement :: Env -> (Loc Statement) -> (Env, (Loc Statement))
+substituteStatement env (Loc pos statement) = (env', Loc pos statement')
  where
   (env', statement') = substituteStatement' env statement
 
@@ -65,8 +65,8 @@ substituteProgram env (Program statements) = Program statements'
 smtlibWrap :: String -> [String] -> String
 smtlibWrap op args = "(" ++ op ++ " " ++ L.intercalate " " args ++ ")"
 
-smtlibExpr :: (Located Expr) -> String
-smtlibExpr (Located _ expr) = case expr of
+smtlibExpr :: (Loc Expr) -> String
+smtlibExpr (Loc _ expr) = case expr of
   Var v -> v
   BoolLit b -> if b then "true" else "false"
   IntLit n -> show n
@@ -86,8 +86,8 @@ smtlibExpr (Located _ expr) = case expr of
   Leq e1 e2 -> smtlibWrap "<=" [smtlibExpr e1, smtlibExpr e2]
   Geq e1 e2 -> smtlibWrap ">=" [smtlibExpr e1, smtlibExpr e2]
 
-smtlibStatement :: (Located Statement) -> String
-smtlibStatement (Located _ statement) = case statement of
+smtlibStatement :: (Loc Statement) -> String
+smtlibStatement (Loc _ statement) = case statement of
   Declare v t -> smtlibWrap "declare-const" [v, show t]
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""

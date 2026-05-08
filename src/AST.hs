@@ -1,5 +1,5 @@
 module AST (
-  Located (..),
+  Loc (..),
   Identifier,
   Type (..),
   Expr (..),
@@ -10,13 +10,13 @@ module AST (
 
 import Text.Megaparsec
 
-data Located a = Located
+data Loc a = Loc
   { loc :: SourcePos
   , node :: a
   }
 
-instance (Show a) => Show (Located a) where
-  show (Located _ n) = show n
+instance (Show a) => Show (Loc a) where
+  show (Loc _ n) = show n
 
 type Identifier = String
 
@@ -30,23 +30,23 @@ data Expr
     BoolLit Bool
   | IntLit Int
   | -- Logical operators
-    Not (Located Expr)
-  | And (Located Expr) (Located Expr)
-  | Or (Located Expr) (Located Expr)
-  | Implies (Located Expr) (Located Expr)
-  | Iff (Located Expr) (Located Expr)
+    Not (Loc Expr)
+  | And (Loc Expr) (Loc Expr)
+  | Or (Loc Expr) (Loc Expr)
+  | Implies (Loc Expr) (Loc Expr)
+  | Iff (Loc Expr) (Loc Expr)
   | -- Arithmetic operators
-    Neg (Located Expr)
-  | Add (Located Expr) (Located Expr)
-  | Sub (Located Expr) (Located Expr)
-  | Mul (Located Expr) (Located Expr)
+    Neg (Loc Expr)
+  | Add (Loc Expr) (Loc Expr)
+  | Sub (Loc Expr) (Loc Expr)
+  | Mul (Loc Expr) (Loc Expr)
   | -- Comparison operators
-    Eq (Located Expr) (Located Expr)
-  | Neq (Located Expr) (Located Expr)
-  | Lt (Located Expr) (Located Expr)
-  | Gt (Located Expr) (Located Expr)
-  | Leq (Located Expr) (Located Expr)
-  | Geq (Located Expr) (Located Expr)
+    Eq (Loc Expr) (Loc Expr)
+  | Neq (Loc Expr) (Loc Expr)
+  | Lt (Loc Expr) (Loc Expr)
+  | Gt (Loc Expr) (Loc Expr)
+  | Leq (Loc Expr) (Loc Expr)
+  | Geq (Loc Expr) (Loc Expr)
 
 instance Show Expr where
   show (Var x) = x
@@ -70,15 +70,15 @@ instance Show Expr where
 
 data Statement
   = Declare Identifier Type
-  | Assign Identifier (Located Expr)
-  | Assert (Located Expr)
+  | Assign Identifier (Loc Expr)
+  | Assert (Loc Expr)
 
 instance Show Statement where
   show (Declare x t) = "Declare " ++ x ++ " " ++ show t
   show (Assign x e) = "Assign " ++ x ++ " " ++ show (node e)
   show (Assert e) = "Assert " ++ show (node e)
 
-data Program = Program [Located Statement]
+data Program = Program [Loc Statement]
 
 instance Show Program where
   show (Program statements) = unlines $ map show statements

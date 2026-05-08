@@ -61,20 +61,20 @@ identifier = lexeme $ do
 
 -- Locators
 
-locate :: Parser a -> Parser (Located a)
-locate p = Located <$> getSourcePos <*> p
+locate :: Parser a -> Parser (Loc a)
+locate p = Loc <$> getSourcePos <*> p
 
-locateOp1 :: String -> (Located Expr -> Expr) -> Parser (Located Expr -> Located Expr)
+locateOp1 :: String -> (Loc Expr -> Expr) -> Parser (Loc Expr -> Loc Expr)
 locateOp1 op constr = do
   pos <- getSourcePos
   _ <- symbol op
-  return $ \e -> Located pos (constr e)
+  return $ \e -> Loc pos (constr e)
 
-locateOp2 :: String -> (Located Expr -> Located Expr -> Expr) -> Parser (Located Expr -> Located Expr -> Located Expr)
+locateOp2 :: String -> (Loc Expr -> Loc Expr -> Expr) -> Parser (Loc Expr -> Loc Expr -> Loc Expr)
 locateOp2 op constr = do
   pos <- getSourcePos
   _ <- symbol op
-  return $ \e1 e2 -> Located pos (constr e1 e2)
+  return $ \e1 e2 -> Loc pos (constr e1 e2)
 
 -- Expressions and statements
 
@@ -98,7 +98,7 @@ intLit = lexeme $ do
   return $ IntLit n
 
 {- FOURMOLU_DISABLE -}
-operatorTable :: [[Operator Parser (Located Expr)]]
+operatorTable :: [[Operator Parser (Loc Expr)]]
 operatorTable =
   [
     [ Prefix (locateOp1  "~"  Not)
@@ -122,7 +122,7 @@ operatorTable =
   ]
 {- FOURMOLU_ENABLE -}
 
-term :: Parser (Located Expr)
+term :: Parser (Loc Expr)
 term =
   choice
     [ parens expr
@@ -131,12 +131,12 @@ term =
     , locate var
     ]
 
-expr :: Parser (Located Expr)
+expr :: Parser (Loc Expr)
 expr = makeExprParser term operatorTable
 
 -- Statements
 
-declare :: Parser (Located Statement)
+declare :: Parser (Loc Statement)
 declare = locate $ lexeme $ do
   keyword "var"
   v <- identifier
@@ -144,7 +144,7 @@ declare = locate $ lexeme $ do
   t <- bool <|> int
   return $ Declare v t
 
-assign :: Parser (Located Statement)
+assign :: Parser (Loc Statement)
 assign = locate $ lexeme $ do
   keyword "let"
   v <- identifier
@@ -152,13 +152,13 @@ assign = locate $ lexeme $ do
   e <- expr
   return $ Assign v e
 
-assert :: Parser (Located Statement)
+assert :: Parser (Loc Statement)
 assert = locate $ lexeme $ do
   keyword "assert"
   e <- expr
   return $ Assert e
 
-statement :: Parser (Located Statement)
+statement :: Parser (Loc Statement)
 statement = declare <|> assign <|> assert
 
 -- Entry point
