@@ -2,13 +2,8 @@
 # A factory produces three products with different resource requirements and profits.
 # Find optimal production quantities to maximize profit subject to resource constraints.
 
-var product_a: int
-var product_b: int
-var product_c: int
-
-var total_profit: int
-var labor_hours: int
-var material_cost: int
+var product_a, product_b, product_c : int
+var total_profit, labor_hours, material_cost : int
 
 # Production requirements per unit:
 # Product A: 2 labor hours, costs $5 per unit, sells for $20 (profit: $15)
