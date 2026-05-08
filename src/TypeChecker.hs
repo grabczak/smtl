@@ -50,9 +50,15 @@ checkExpr env (Loc pos expr) = case expr of
 
 checkStatement :: Env -> (Loc Statement) -> Either TypeError Env
 checkStatement env (Loc _ statement) = case statement of
-  Declare (Loc pos v) t
-    | M.member v env -> Left $ DuplicateIdentifier pos v
-    | otherwise -> Right $ M.insert v t env
+  Declare vs t ->
+    foldM
+      ( \acc (Loc pos v) ->
+          if M.member v acc
+            then Left $ DuplicateIdentifier pos v
+            else Right $ M.insert v t acc
+      )
+      env
+      vs
   Assign (Loc pos v) e
     | M.member v env -> Left $ DuplicateIdentifier pos v
     | otherwise -> do

@@ -88,7 +88,7 @@ smtlibExpr (Loc _ expr) = case expr of
 
 smtlibStatement :: (Loc Statement) -> String
 smtlibStatement (Loc _ statement) = case statement of
-  Declare (Loc _ v) t -> smtlibWrap "declare-const" [v, show t]
+  Declare vs t -> L.intercalate "\n" $ map (\(Loc _ v) -> smtlibWrap "declare-const" [v, show t]) vs
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""
 

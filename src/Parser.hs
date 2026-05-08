@@ -139,7 +139,7 @@ expr = makeExprParser term operatorTable
 declare :: Parser (Loc Statement)
 declare = locate $ lexeme $ do
   keyword "var"
-  v <- locate $ identifier
+  v <- (locate $ identifier) `sepBy` symbol ","
   _ <- symbol ":"
   t <- bool <|> int
   return $ Declare v t

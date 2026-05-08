@@ -69,7 +69,7 @@ instance Show Expr where
   show (Geq e1 e2) = "(Geq " ++ show e1 ++ " " ++ show e2 ++ ")"
 
 data Statement
-  = Declare (Loc Identifier) Type
+  = Declare [Loc Identifier] Type
   | Assign (Loc Identifier) (Loc Expr)
   | Assert (Loc Expr)
 
