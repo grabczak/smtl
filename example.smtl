@@ -1,41 +1,13 @@
-# Production Optimization Problem
-# A factory produces three products with different resource requirements and profits.
-# Find optimal production quantities to maximize profit subject to resource constraints.
+# Comment
 
-var product_a, product_b, product_c : int
-var total_profit, labor_hours, material_cost : int
+# Declarations
+var p, q : bool
+var m, n : int
 
-# Production requirements per unit:
-# Product A: 2 labor hours, costs $5 per unit, sells for $20 (profit: $15)
-# Product B: 3 labor hours, costs $8 per unit, sells for $25 (profit: $17)
-# Product C: 1 labor hour,  costs $3 per unit, sells for $12 (profit: $9)
+# Assignments
+let f = (~p \/ q) /\ (p <=> q) /\ (F => T)
+let g = -m * m + n - 1 < -1
 
-# Calculate total labor hours used (max 40 hours available)
-let labor_constraint = (2 * product_a + 3 * product_b + 1 * product_c) <= 40
-
-# Calculate total material cost (max $200 budget)
-let material_constraint = (5 * product_a + 8 * product_b + 3 * product_c) <= 200
-
-# Calculate profit (15*a + 17*b + 9*c)
-let profit_formula = total_profit == (15 * product_a + 17 * product_b + 9 * product_c)
-
-# Demand constraints (market limits)
-let demand_a = product_a <= 5
-let demand_b = product_b <= 4
-let demand_c = product_c <= 8
-
-# Non-negative production
-let non_negative = product_a >= 0 /\ product_b >= 0 /\ product_c >= 0
-
-# Profit must be positive and substantial
-let profit_target = total_profit >= 100
-
-# Assert each constraint separately
-assert labor_constraint
-assert material_constraint
-assert profit_formula
-assert demand_a
-assert demand_b
-assert demand_c
-assert non_negative
-assert profit_target
+# Assertions
+assert f
+assert g
