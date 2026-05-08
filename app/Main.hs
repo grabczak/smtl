@@ -25,21 +25,25 @@ callZ3 input = do
   hClose hin
   hGetContents hout
 
+handleError :: SomeException -> IO a
+handleError e = do
+  putStrLn $ show (e :: SomeException)
+  exitFailure
+
 main :: IO ()
 main = do
   paths <- getArgs
   case paths of
     [] -> putStrLn "Please provide a file path as an argument."
     (path : _) -> do
-      content <- catch (readFile path) (\e -> (putStrLn $ show (e :: SomeException)) >> exitFailure)
+      content <- catch (readFile path) handleError
       case parseProgram path content of
         Left parseErr -> putStrLn $ errorBundlePretty parseErr
         Right program -> do
-          putStrLn $ show program
           case checkProgram program of
             Left typeErr -> putStrLn $ typeErrorPretty content typeErr
             Right correctProgram -> do
               let z3Input = smtlib correctProgram
               putStrLn z3Input
-              z3Result <- callZ3 z3Input
+              z3Result <- catch (callZ3 z3Input) handleError
               putStrLn z3Result
