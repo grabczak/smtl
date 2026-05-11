@@ -95,7 +95,7 @@ smtlibStatement (Loc _ statement) = case statement of
 smtlib :: Program -> String
 smtlib program =
   unlines $
-    ["(set-logic QF_UFNIA)"]
+    ["(set-logic QF_NIA)"]
       ++ filter (not . null) (map smtlibStatement statements)
       ++ ["(check-sat)", "(get-model)", "(exit)"]
  where
