@@ -136,29 +136,29 @@ expr = makeExprParser term operatorTable
 
 -- Statements
 
-declare :: Parser Statement
-declare = lexeme $ do
+declare :: Parser (Loc Statement)
+declare = locate $ lexeme $ do
   keyword "var"
   v <- (locate $ identifier) `sepBy` symbol ","
   _ <- symbol ":"
   t <- bool <|> int
   return $ Declare v t
 
-assign :: Parser Statement
-assign = lexeme $ do
+assign :: Parser (Loc Statement)
+assign = locate $ lexeme $ do
   keyword "let"
   v <- locate $ identifier
   _ <- symbol "="
   e <- expr
   return $ Assign v e
 
-assert :: Parser Statement
-assert = lexeme $ do
+assert :: Parser (Loc Statement)
+assert = locate $ lexeme $ do
   keyword "assert"
   e <- expr
   return $ Assert e
 
-statement :: Parser Statement
+statement :: Parser (Loc Statement)
 statement = declare <|> assign <|> assert
 
 -- Entry point

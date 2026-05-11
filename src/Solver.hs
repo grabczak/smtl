@@ -39,14 +39,20 @@ substituteExpr' env expr = case expr of
 substituteExpr :: Env -> (Loc Expr) -> Loc Expr
 substituteExpr env (Loc pos expr) = Loc pos (substituteExpr' env expr)
 
--- Substitute statement and update environment
-substituteStatement :: Env -> Statement -> (Env, Statement)
-substituteStatement env statement = case statement of
+-- Substitute a statement without location wrapper
+substituteStatement' :: Env -> Statement -> (Env, Statement)
+substituteStatement' env statement = case statement of
   Declare v t -> (env, Declare v t)
   Assign (Loc pos v) e -> (M.insert v e' env, Assign (Loc pos v) (substituteExpr env e))
    where
     e' = substituteExpr env e
   Assert e -> (env, Assert (substituteExpr env e))
+
+-- Substitute a located statement
+substituteStatement :: Env -> (Loc Statement) -> (Env, (Loc Statement))
+substituteStatement env (Loc pos statement) = (env', Loc pos statement')
+ where
+  (env', statement') = substituteStatement' env statement
 
 -- Substitute entire program
 substituteProgram :: Env -> Program -> Program
@@ -80,8 +86,8 @@ smtlibExpr (Loc _ expr) = case expr of
   Leq e1 e2 -> smtlibWrap "<=" [smtlibExpr e1, smtlibExpr e2]
   Geq e1 e2 -> smtlibWrap ">=" [smtlibExpr e1, smtlibExpr e2]
 
-smtlibStatement :: Statement -> String
-smtlibStatement statement = case statement of
+smtlibStatement :: (Loc Statement) -> String
+smtlibStatement (Loc _ statement) = case statement of
   Declare vs t -> L.intercalate "\n" $ map (\(Loc _ v) -> smtlibWrap "declare-const" [v, show t]) vs
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""

@@ -75,10 +75,10 @@ data Statement
 
 instance Show Statement where
   show (Declare vs t) = "Declare " ++ unwords (map node vs) ++ " " ++ show t
-  show (Assign v e) = "Assign " ++ node v ++ " " ++ show e
+  show (Assign v e) = "Assign " ++ show v ++ " " ++ show e
   show (Assert e) = "Assert " ++ show e
 
-data Program = Program [Statement]
+data Program = Program [Loc Statement]
 
 instance Show Program where
   show (Program statements) = unlines $ map show statements

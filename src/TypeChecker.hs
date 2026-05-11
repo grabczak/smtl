@@ -48,8 +48,8 @@ checkExpr env (Loc pos expr) = case expr of
   Leq m n -> checkOp2 env m n Int Bool
   Geq m n -> checkOp2 env m n Int Bool
 
-checkStatement :: Env -> (Statement) -> Either TypeError Env
-checkStatement env statement = case statement of
+checkStatement :: Env -> (Loc Statement) -> Either TypeError Env
+checkStatement env (Loc _ statement) = case statement of
   Declare vs t ->
     foldM
       ( \acc (Loc pos v) ->
