@@ -3,23 +3,23 @@ module Display (typeErrorPretty) where
 import Text.Megaparsec
 
 import AST
-import Data.Char
+import Data.List ((!?))
 
-typeErrorPretty :: String -> TypeError -> String
-typeErrorPretty file err = case err of
-  UnboundVariable (SourcePos name line column) var ->
-    formatError name line column ("unbound variable " ++ "'" ++ var ++ "'")
-  DuplicateIdentifier (SourcePos name line column) var ->
-    formatError name line column ("duplicate identifier " ++ "'" ++ var ++ "'")
-  TypeMismatch (SourcePos name line column) expected actual ->
-    formatError name line column ("expected " ++ toLowerCase expected ++ ", but got " ++ toLowerCase actual)
+typeErrorPretty :: String -> (Loc TypeError) -> String
+typeErrorPretty file (Loc ((SourcePos name line column)) err) = case err of
+  UnboundVariable var ->
+    formatError ("unbound variable " ++ "'" ++ var ++ "'")
+  DuplicateIdentifier var ->
+    formatError ("duplicate identifier " ++ "'" ++ var ++ "'")
+  TypeMismatch expected actual ->
+    formatError ("expected " ++ show expected ++ ", but got " ++ show actual)
  where
-  formatError name line column msg =
+  formatError msg =
     let l = unPos line
         c = unPos column
         lineStr = show l
-        content = getFileContent l
-        pointer = makePointer c
+        content = maybe "" id (lines file !? (l - 1))
+        pointer = replicate (max 0 (c - 1)) ' ' ++ "^"
         spacing = replicate (length lineStr + 1) ' '
      in unlines
           [ name ++ ":" ++ lineStr ++ ":" ++ show c ++ ":"
@@ -28,11 +28,3 @@ typeErrorPretty file err = case err of
           , spacing ++ "| " ++ pointer
           , msg
           ]
-
-  getFileContent l =
-    let fileLines = lines file
-     in if l > 0 && l <= length fileLines then fileLines !! (l - 1) else ""
-
-  makePointer c = replicate (max 0 (c - 1)) ' ' ++ "^"
-
-  toLowerCase t = map toLower $ show t

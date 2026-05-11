@@ -13,7 +13,7 @@ type Env = M.Map Identifier (Loc Expr)
 substituteExpr' :: Env -> Expr -> Expr
 substituteExpr' env expr = case expr of
   Var v -> case M.lookup v env of
-    Just e -> node $ substituteExpr env e
+    Just e -> node $ go env e
     Nothing -> Var v
   BoolLit b -> BoolLit b
   IntLit n -> IntLit n

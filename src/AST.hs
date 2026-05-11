@@ -21,7 +21,11 @@ instance (Show a) => Show (Loc a) where
 type Identifier = String
 
 data Type = Bool | Int
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show Type where
+  show Bool = "bool"
+  show Int = "int"
 
 data Expr
   = -- Variables
@@ -84,6 +88,6 @@ instance Show Program where
   show (Program statements) = unlines $ map show statements
 
 data TypeError
-  = UnboundVariable SourcePos Identifier
-  | DuplicateIdentifier SourcePos Identifier
-  | TypeMismatch SourcePos Type Type
+  = UnboundVariable Identifier
+  | DuplicateIdentifier Identifier
+  | TypeMismatch Type Type
