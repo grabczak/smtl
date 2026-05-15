@@ -1,12 +1,12 @@
 # SMTL
 
-My custom language for writing satisfiability modulo theories (SMT) problems.
+My custom language for writing SMT (Satisfiability Modulo Theories) problems.
 
 ## Setup
 
-Install all the necessary Haskell tools via [GHCup](https://www.haskell.org/ghcup/).
+Install GHC, Stack and Cabal via [GHCup](https://www.haskell.org/ghcup/).
 
-You can verify the installation by checking the versions:
+You can verify the installation by running:
 
 ```bash
 $ ghcup tui
@@ -40,8 +40,6 @@ $ stack test
 
 ## Working Example
 
-Basic syntax:
-
 ```
 # Comment
 
@@ -58,16 +56,50 @@ assert f
 assert g
 ```
 
-This program declares four variables and defines two constraints. When solved, the SMT solver will find assignments to `p`, `q`, `m`, and `n` that satisfy both `f` and `g`, or determine that the constraints are unsatisfiable.
+## SMT Overview
 
-## Language Overview
+SMT formulas represent a problem: given constraints over typed variables (booleans, integers, etc.), find values that satisfy all of them at once.
+You can think of SMT problems as extensions of SAT problems, where instead of just true/false variables, you have richer types and operations.
 
-Essentially, you can think of an SMT formula as a SAT formula with additional types, such as integers, reals, or even strings and arrays.
+Here's an example:
 
-SMTL is a language that allows you to write SMT problems in a convenient format, which is then translated into SMT-LIB for solving.
+```
+Find booleans p, q and integers x, y such that:
+  p ∨ q
+  x > 0 ∧ y > 0
+  x · y = 12
+  x < y
+```
+
+Such problems can be solved by solvers such as Z3 or CVC5, which take SMT-LIB files as an input.
+Here is the SMT-LIB for the problem above:
+
+```
+(declare-const p Bool)
+(declare-const q Bool)
+(declare-const x Int)
+(declare-const y Int)
+(assert (or p q))
+(assert (and (> x 0) (> y 0)))
+(assert (= (* x y) 12))
+(assert (< x y))
+```
+
+SMT-LIB uses a Lisp-like syntax, and while it's easy to parse, it can be difficult to write by hand.
+SMTL tries to solve this problem by providing a more user-friendly syntax, which is then translated to SMT-LIB under the hood.
+
+```
+var p, q : bool
+var x, y : int
+
+assert p \/ q
+assert x > 0 /\ y > 0
+assert x * y == 12
+assert x < y
+```
 
 As of today, SMTL supports booleans and integers.
-All computations are performed in the theory of Quantifier-Free Nonlinear Integer Arithmetic (QF_NIA).
+All computations are performed in the theory of Quantifier-Free Non-Linear Integer Arithmetic (QF_NIA).
 
 ## Syntax
 
@@ -124,7 +156,7 @@ SMTL supports two types:
 Use `let` to assign an expression to an identifier:
 
 ```
-let f = (~p \/ q) /\ (p <=> q)
+let f = (~p \/ q) /\ (p <=> q) /\ (F => T)
 let g = -m * m + n - 1 < -1
 ```
 
@@ -146,6 +178,64 @@ SMTL consists of three main modules:
 - **Solver** - Translates AST into SMT-LIB format
 
 A separate Z3 process is spawned to solve the generated SMT-LIB problem.
+
+### Example
+
+We start with the following SMTL code:
+
+```
+var p, q : bool
+var x, y : int
+
+assert p \/ q
+assert x > 0 /\ y > 0
+assert x * y == 12
+assert x < y
+```
+
+Parser converts it into an AST:
+
+```
+Declare [p, q] Bool
+Declare [x, y] Int
+Assert (Or p q)
+Assert (And (Gt x 0) (Gt y 0))
+Assert (Eq (Mul x y) 12)
+Assert (Lt x y)
+```
+
+Type Checker looks for type errors and validates the program. If there are no errors, it passes the AST to the Solver, which generates the following SMT-LIB code:
+
+```
+(set-logic QF_NIA)
+(declare-const p Bool)
+(declare-const q Bool)
+(declare-const x Int)
+(declare-const y Int)
+(assert (or p q))
+(assert (and (> x 0) (> y 0)))
+(assert (= (* x y) 12))
+(assert (< x y))
+(check-sat)
+(get-model)
+(exit)
+```
+
+Finally, Z3 is invoked with the generated SMT-LIB code, and it returns a solution that satisfies all the assertions:
+
+```
+sat
+(
+  (define-fun p () Bool
+    true)
+  (define-fun x () Int
+    2)
+  (define-fun y () Int
+    6)
+  (define-fun q () Bool
+    false)
+)
+```
 
 ## Warning
 
