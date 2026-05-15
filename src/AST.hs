@@ -8,6 +8,7 @@ module AST (
   TypeError (..),
 ) where
 
+import qualified Data.List as L
 import Text.Megaparsec
 
 -- Location wrapper, tracks source position
@@ -75,8 +76,8 @@ data Statement
   | Assert (Loc Expr)
 
 instance Show Statement where
-  show (Declare vs t) = "Declare " ++ unwords (map node vs) ++ " " ++ show t
-  show (Assign v e) = "Assign " ++ show v ++ " " ++ show e
+  show (Declare vs t) = "Declare [" ++ L.intercalate ", " (map node vs) ++ "] " ++ show t
+  show (Assign v e) = "Assign " ++ node v ++ " " ++ show e
   show (Assert e) = "Assert " ++ show e
 
 data Program = Program [Loc Statement]
