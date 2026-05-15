@@ -21,11 +21,7 @@ instance (Show a) => Show (Loc a) where
 type Identifier = String
 
 data Type = Bool | Int
-  deriving (Eq)
-
-instance Show Type where
-  show Bool = "bool"
-  show Int = "int"
+  deriving (Eq, Show)
 
 data Expr
   = -- Variables

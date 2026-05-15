@@ -3,6 +3,7 @@ module Display (typeErrorPretty) where
 import Text.Megaparsec
 
 import AST
+import Data.Char
 import Data.List ((!?))
 
 typeErrorPretty :: String -> (Loc TypeError) -> String
@@ -12,7 +13,7 @@ typeErrorPretty file (Loc ((SourcePos name line column)) err) = case err of
   DuplicateIdentifier var ->
     formatError ("duplicate identifier " ++ "'" ++ var ++ "'")
   TypeMismatch expected actual ->
-    formatError ("expected " ++ show expected ++ ", but got " ++ show actual)
+    formatError ("expected " ++ map toLower (show expected) ++ ", but got " ++ map toLower (show actual))
  where
   formatError msg =
     let l = unPos line
