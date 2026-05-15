@@ -10,6 +10,7 @@ module AST (
 
 import Text.Megaparsec
 
+-- Location wrapper, tracks source position
 data Loc a = Loc
   { loc :: SourcePos
   , node :: a

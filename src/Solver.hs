@@ -5,8 +5,7 @@ import qualified Data.Map as M
 
 import AST
 
--- Substitute assignments
-
+-- Environment for substitutions in assignments and assertions
 type Env = M.Map Identifier (Loc Expr)
 
 -- Substitute an expression without location wrapper
@@ -92,11 +91,17 @@ smtlibStatement (Loc _ statement) = case statement of
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""
 
+theory, check, get, exit :: String
+theory = "(set-logic QF_NIA)"
+check = "(check-sat)"
+get = "(get-model)"
+exit = "(exit)"
+
 smtlib :: Program -> String
 smtlib program =
   unlines $
-    ["(set-logic QF_NIA)"]
+    [theory]
       ++ filter (not . null) (map smtlibStatement statements)
-      ++ ["(check-sat)", "(get-model)", "(exit)"]
+      ++ [check, get, exit]
  where
   Program statements = substituteProgram M.empty program

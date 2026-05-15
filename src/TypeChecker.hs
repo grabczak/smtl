@@ -5,8 +5,10 @@ import qualified Data.Map as M
 
 import AST
 
+-- Environment for type checking
 type Env = M.Map Identifier Type
 
+-- Checks a unary operation
 checkOp1 :: Env -> (Loc Expr) -> Type -> Type -> Either (Loc TypeError) Type
 checkOp1 env e expected result = do
   e' <- checkExpr env e
@@ -14,6 +16,7 @@ checkOp1 env e expected result = do
     then Right result
     else Left $ Loc (loc e) $ TypeMismatch expected e'
 
+-- Checks a binary operation
 checkOp2 :: Env -> (Loc Expr) -> (Loc Expr) -> Type -> Type -> Either (Loc TypeError) Type
 checkOp2 env e f expected result = do
   e' <- checkExpr env e
@@ -25,6 +28,7 @@ checkOp2 env e f expected result = do
         then Left $ Loc (loc e) $ TypeMismatch expected e'
         else Left $ Loc (loc f) $ TypeMismatch expected f'
 
+-- Checks an expression and returns its type
 checkExpr :: Env -> (Loc Expr) -> Either (Loc TypeError) Type
 checkExpr env (Loc pos expr) = case expr of
   Var v -> maybe (Left $ Loc pos $ UnboundVariable v) Right (M.lookup v env)
@@ -46,6 +50,7 @@ checkExpr env (Loc pos expr) = case expr of
   Leq m n -> checkOp2 env m n Int Bool
   Geq m n -> checkOp2 env m n Int Bool
 
+-- Checks a statement and updates the environment
 checkStatement :: Env -> (Loc Statement) -> Either (Loc TypeError) Env
 checkStatement env (Loc _ statement) = case statement of
   Declare vs t ->
@@ -68,6 +73,7 @@ checkStatement env (Loc _ statement) = case statement of
       then Right env
       else Left $ Loc pos $ TypeMismatch Bool t
 
+-- Checks entire program
 checkProgram :: Program -> Either (Loc TypeError) Program
 checkProgram (Program statements) = do
   _ <- foldM checkStatement M.empty statements
