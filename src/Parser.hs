@@ -32,10 +32,6 @@ lexeme = L.lexeme sc
 symbol :: String -> Parser String
 symbol = L.symbol sc
 
--- Parentheses helper
-parens :: Parser a -> Parser a
-parens = between (symbol "(") (symbol ")")
-
 -- Keywords and identifiers
 
 -- Reserved keywords
@@ -145,11 +141,20 @@ operatorTable =
 term :: Parser (Loc Expr)
 term =
   choice
-    [ parens expr
-    , boolLit
+    [ parenExpr
     , intLit
+    , boolLit
     , var
     ]
+
+-- Parses a parenthesized expression with position at the opening paren
+parenExpr :: Parser (Loc Expr)
+parenExpr = do
+  pos <- getSourcePos
+  _ <- symbol "("
+  e <- expr
+  _ <- symbol ")"
+  return $ Loc pos (node e)
 
 -- Parses expressions using the operator table
 expr :: Parser (Loc Expr)
