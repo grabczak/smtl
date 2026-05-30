@@ -11,3 +11,5 @@ let g = -m * m + n - 1 < -1
 # Assertions
 assert f
 assert g
+
+# assert (m+n) < (p/\q)
