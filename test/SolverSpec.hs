@@ -17,7 +17,7 @@ testPos = initialPos "test.smtl"
 
 -- Helper to create a Loc
 makeLoc :: a -> Loc a
-makeLoc = Loc testPos
+makeLoc = Loc testPos 1
 
 -- SMT-LIB expression conversion tests
 

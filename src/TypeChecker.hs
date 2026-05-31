@@ -15,7 +15,7 @@ checkOp1 expr expected result = do
   actual <- checkExpr expr
   if actual == expected
     then lift $ Right $ result
-    else lift $ Left $ Loc (loc expr) $ TypeMismatch expected actual
+    else lift $ Left $ Loc (loc expr) (len expr) $ TypeMismatch expected actual
 
 -- Checks a binary operation
 checkOp2 :: (Loc Expr) -> (Loc Expr) -> Type -> Type -> StateT Env (Either (Loc TypeError)) Type
@@ -26,18 +26,18 @@ checkOp2 expr1 expr2 expected result = do
     then lift $ Right result
     else
       if actual1 /= expected
-        then lift $ Left $ Loc (loc expr1) $ TypeMismatch expected actual1
-        else lift $ Left $ Loc (loc expr2) $ TypeMismatch expected actual2
+        then lift $ Left $ Loc (loc expr1) (len expr1) $ TypeMismatch expected actual1
+        else lift $ Left $ Loc (loc expr2) (len expr2) $ TypeMismatch expected actual2
 
 -- Checks an expression and returns its type
 checkExpr :: (Loc Expr) -> StateT Env (Either (Loc TypeError)) Type
-checkExpr (Loc pos expr) = do
+checkExpr (Loc pos spanLen expr) = do
   env <- get
   case expr of
     Var v -> do
       case M.lookup v env of
         (Just t) -> return t
-        Nothing -> lift $ Left $ Loc pos $ UnboundVariable v
+        Nothing -> lift $ Left $ Loc pos spanLen $ UnboundVariable v
     BoolLit _ -> return Bool
     IntLit _ -> return Int
     Not p -> checkOp1 p Bool Bool
@@ -58,24 +58,24 @@ checkExpr (Loc pos expr) = do
 
 -- Checks a statement and updates the environment
 checkStatement :: (Loc Statement) -> StateT Env (Either (Loc TypeError)) ()
-checkStatement (Loc _ statement) = do
+checkStatement (Loc _ _ statement) = do
   env <- get
   case statement of
     Declare vs t -> do
       env' <- lift $ foldM go env vs
       put env'
      where
-      go acc (Loc pos v)
-        | M.member v acc = Left $ Loc pos $ DuplicateIdentifier v
+      go acc (Loc pos spanLen v)
+        | M.member v acc = Left $ Loc pos spanLen $ DuplicateIdentifier v
         | otherwise = Right $ M.insert v t acc
-    Assign (Loc pos v) expr
-      | M.member v env -> lift $ Left $ Loc pos $ DuplicateIdentifier v
+    Assign (Loc pos spanLen v) expr
+      | M.member v env -> lift $ Left $ Loc pos spanLen $ DuplicateIdentifier v
       | otherwise -> do
           t <- checkExpr expr
           put $ M.insert v t env
-    Assert (Loc pos v) -> do
-      t <- checkExpr (Loc pos v)
-      when (t /= Bool) (lift $ Left $ Loc pos $ TypeMismatch Bool t)
+    Assert (Loc pos spanLen v) -> do
+      t <- checkExpr (Loc pos spanLen v)
+      when (t /= Bool) (lift $ Left $ Loc pos spanLen $ TypeMismatch Bool t)
 
 -- Checks entire program
 checkProgram :: Program -> Either (Loc TypeError) Program

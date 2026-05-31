@@ -11,14 +11,15 @@ module AST (
 import qualified Data.List as L
 import Text.Megaparsec
 
--- Location wrapper, tracks source position
+-- Location wrapper, tracks source position and span length
 data Loc a = Loc
   { loc :: SourcePos
+  , len :: Int
   , node :: a
   }
 
 instance (Show a) => Show (Loc a) where
-  show (Loc _ n) = show n
+  show (Loc _ _ n) = show n
 
 type Identifier = String
 

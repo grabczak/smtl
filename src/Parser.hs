@@ -54,7 +54,7 @@ keyword kw = lexeme $ do
 
 -- Parses an identifier, ensuring it doesn't match any reserved keyword
 identifier :: Parser (Identifier)
-identifier = lexeme $ do
+identifier = do
   first <- letterChar
   rest <- many (alphaNumChar <|> char '_')
   let name = first : rest
@@ -64,26 +64,32 @@ identifier = lexeme $ do
 
 -- Locators
 
--- Wraps a parser to include source position
+-- Wraps a parser to include source position and span length
 locate :: Parser a -> Parser (Loc a)
 locate par = do
-  pos <- getSourcePos
+  startPos <- getSourcePos
+  input <- stateInput <$> getParserState
   res <- par
-  return $ Loc pos res
+  inputAfter <- stateInput <$> getParserState
+  let spanLen = length input - length inputAfter
+  return $ Loc startPos spanLen res
 
 -- Puts a unary operator in a location wrapper
 locateOp1 :: String -> (Loc Expr -> Expr) -> Parser (Loc Expr -> Loc Expr)
 locateOp1 op constr = do
-  pos <- getSourcePos
   _ <- symbol op
-  return $ \e -> Loc pos (constr e)
+  return $ \e -> Loc (loc e) (len e) (constr e)
 
 -- Puts a binary operator in a location wrapper
 locateOp2 :: String -> (Loc Expr -> Loc Expr -> Expr) -> Parser (Loc Expr -> Loc Expr -> Loc Expr)
 locateOp2 op constr = do
-  pos <- getSourcePos
   _ <- symbol op
-  return $ \e1 e2 -> Loc pos (constr e1 e2)
+  return $ \e1 e2 ->
+    let startPos = loc e1
+        startCol = unPos (sourceColumn startPos)
+        endCol = unPos (sourceColumn (loc e2)) + len e2
+        totalLen = endCol - startCol
+     in Loc startPos totalLen (constr e1 e2)
 
 -- Expressions and statements
 
@@ -94,19 +100,19 @@ int = lexeme $ keyword "int" >> return Int
 
 -- Parses variable identifiers
 var :: Parser (Loc Expr)
-var = locate $ lexeme $ do
+var = lexeme $ locate $ do
   v <- identifier
   return $ Var v
 
 -- Parses boolean literals
 boolLit :: Parser (Loc Expr)
-boolLit = locate $ lexeme $ do
+boolLit = lexeme $ locate $ do
   b <- (keyword "T" >> return True) <|> (keyword "F" >> return False)
   return $ BoolLit b
 
 -- Parses integer literals
 intLit :: Parser (Loc Expr)
-intLit = locate $ lexeme $ do
+intLit = lexeme $ locate $ do
   n <- L.decimal
   return $ IntLit n
 
@@ -150,11 +156,16 @@ term =
 -- Parses a parenthesized expression with position at the opening paren
 parenExpr :: Parser (Loc Expr)
 parenExpr = do
-  pos <- getSourcePos
+  startPos <- getSourcePos
+  let startCol = unPos (sourceColumn startPos)
   _ <- symbol "("
   e <- expr
-  _ <- symbol ")"
-  return $ Loc pos (node e)
+  _ <- char ')'
+  endPos <- getSourcePos
+  space
+  let endCol = unPos (sourceColumn endPos)
+      spanLen = endCol - startCol
+  return $ Loc startPos spanLen (node e)
 
 -- Parses expressions using the operator table
 expr :: Parser (Loc Expr)
@@ -166,7 +177,7 @@ expr = makeExprParser term operatorTable
 declare :: Parser (Loc Statement)
 declare = locate $ lexeme $ do
   keyword "var"
-  v <- (locate $ identifier) `sepBy` symbol ","
+  v <- (lexeme $ locate identifier) `sepBy` symbol ","
   _ <- symbol ":"
   t <- bool <|> int
   return $ Declare v t
@@ -175,7 +186,7 @@ declare = locate $ lexeme $ do
 assign :: Parser (Loc Statement)
 assign = locate $ lexeme $ do
   keyword "let"
-  v <- locate $ identifier
+  v <- lexeme $ locate identifier
   _ <- symbol "="
   e <- expr
   return $ Assign v e

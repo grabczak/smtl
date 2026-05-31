@@ -16,7 +16,7 @@ testPos = initialPos "test.smtl"
 
 -- Helper to create a Loc
 makeLoc :: a -> Loc a
-makeLoc = Loc testPos
+makeLoc = Loc testPos 1
 
 -- Valid programs
 testCheckSimpleDeclaration :: Test
@@ -114,7 +114,7 @@ testCheckUnboundVariable :: Test
 testCheckUnboundVariable = TestCase $ do
   let prog = Program [makeLoc (Assert (makeLoc (Var "undefined")))]
   case checkProgram prog of
-    Left (Loc _ (UnboundVariable "undefined")) -> assertBool "Caught unbound variable" True
+    Left (Loc _ _ (UnboundVariable "undefined")) -> assertBool "Caught unbound variable" True
     Left _ -> assertFailure "Wrong error type for unbound variable"
     Right _ -> assertFailure "Should have caught unbound variable"
 
@@ -126,7 +126,7 @@ testCheckUnboundInExpression = TestCase $ do
           , makeLoc (Assign (makeLoc "y") (makeLoc (Add (makeLoc (Var "x")) (makeLoc (Var "undefined")))))
           ]
   case checkProgram prog of
-    Left (Loc _ (UnboundVariable "undefined")) -> assertBool "Caught unbound variable in expression" True
+    Left (Loc _ _ (UnboundVariable "undefined")) -> assertBool "Caught unbound variable in expression" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught unbound variable"
 
@@ -139,7 +139,7 @@ testCheckDuplicateIdentifier = TestCase $ do
           , makeLoc (Declare [makeLoc "x"] Bool)
           ]
   case checkProgram prog of
-    Left (Loc _ (DuplicateIdentifier "x")) -> assertBool "Caught duplicate identifier" True
+    Left (Loc _ _ (DuplicateIdentifier "x")) -> assertBool "Caught duplicate identifier" True
     Left _ -> assertFailure "Wrong error type for duplicate"
     Right _ -> assertFailure "Should have caught duplicate identifier"
 
@@ -151,7 +151,7 @@ testCheckDuplicateInAssign = TestCase $ do
           , makeLoc (Assign (makeLoc "x") (makeLoc (IntLit 5)))
           ]
   case checkProgram prog of
-    Left (Loc _ (DuplicateIdentifier "x")) -> assertBool "Caught duplicate in assign" True
+    Left (Loc _ _ (DuplicateIdentifier "x")) -> assertBool "Caught duplicate in assign" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught duplicate in assignment"
 
@@ -160,7 +160,7 @@ testCheckAssertIntExpression :: Test
 testCheckAssertIntExpression = TestCase $ do
   let prog = Program [makeLoc (Assert (makeLoc (IntLit 5)))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Bool Int)) -> assertBool "Caught type mismatch in assertion" True
+    Left (Loc _ _ (TypeMismatch Bool Int)) -> assertBool "Caught type mismatch in assertion" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -172,7 +172,7 @@ testCheckAssertArithmetic = TestCase $ do
           , makeLoc (Assert (makeLoc (Add (makeLoc (Var "x")) (makeLoc (Var "y")))))
           ]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Bool Int)) -> assertBool "Caught arithmetic as bool" True
+    Left (Loc _ _ (TypeMismatch Bool Int)) -> assertBool "Caught arithmetic as bool" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -182,7 +182,7 @@ testCheckAndWithInts = TestCase $ do
   let expr = And (makeLoc (IntLit 1)) (makeLoc (BoolLit True))
   let prog = Program [makeLoc (Assert (makeLoc expr))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Bool Int)) -> assertBool "Caught int in AND" True
+    Left (Loc _ _ (TypeMismatch Bool Int)) -> assertBool "Caught int in AND" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -191,7 +191,7 @@ testCheckOrWithInts = TestCase $ do
   let expr = Or (makeLoc (BoolLit True)) (makeLoc (IntLit 5))
   let prog = Program [makeLoc (Assert (makeLoc expr))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Bool Int)) -> assertBool "Caught int in OR" True
+    Left (Loc _ _ (TypeMismatch Bool Int)) -> assertBool "Caught int in OR" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -200,7 +200,7 @@ testCheckNotWithInt = TestCase $ do
   let expr = Not (makeLoc (IntLit 5))
   let prog = Program [makeLoc (Assert (makeLoc expr))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Bool Int)) -> assertBool "Caught int in NOT" True
+    Left (Loc _ _ (TypeMismatch Bool Int)) -> assertBool "Caught int in NOT" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -210,7 +210,7 @@ testCheckAddBools = TestCase $ do
   let expr = Add (makeLoc (BoolLit True)) (makeLoc (BoolLit False))
   let prog = Program [makeLoc (Assert (makeLoc (Geq (makeLoc expr) (makeLoc (IntLit 0)))))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in ADD" True
+    Left (Loc _ _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in ADD" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -219,7 +219,7 @@ testCheckSubBools = TestCase $ do
   let expr = Sub (makeLoc (BoolLit True)) (makeLoc (BoolLit False))
   let prog = Program [makeLoc (Assert (makeLoc (Geq (makeLoc expr) (makeLoc (IntLit 0)))))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in SUB" True
+    Left (Loc _ _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in SUB" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -228,7 +228,7 @@ testCheckMulBools = TestCase $ do
   let expr = Mul (makeLoc (BoolLit True)) (makeLoc (BoolLit False))
   let prog = Program [makeLoc (Assert (makeLoc (Geq (makeLoc expr) (makeLoc (IntLit 0)))))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in MUL" True
+    Left (Loc _ _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in MUL" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -237,7 +237,7 @@ testCheckNegBool = TestCase $ do
   let expr = Neg (makeLoc (BoolLit True))
   let prog = Program [makeLoc (Assert (makeLoc (Geq (makeLoc expr) (makeLoc (IntLit 0)))))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in NEG" True
+    Left (Loc _ _ (TypeMismatch Int Bool)) -> assertBool "Caught bool in NEG" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -247,7 +247,7 @@ testCheckEqMismatch = TestCase $ do
   let expr = Eq (makeLoc (BoolLit True)) (makeLoc (IntLit 1))
   let prog = Program [makeLoc (Assert (makeLoc expr))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Int Bool)) -> assertBool "Caught type mismatch in EQ" True
+    Left (Loc _ _ (TypeMismatch Int Bool)) -> assertBool "Caught type mismatch in EQ" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 
@@ -256,7 +256,7 @@ testCheckLtMismatch = TestCase $ do
   let expr = Lt (makeLoc (BoolLit True)) (makeLoc (IntLit 5))
   let prog = Program [makeLoc (Assert (makeLoc expr))]
   case checkProgram prog of
-    Left (Loc _ (TypeMismatch Int Bool)) -> assertBool "Caught type mismatch in LT" True
+    Left (Loc _ _ (TypeMismatch Int Bool)) -> assertBool "Caught type mismatch in LT" True
     Left _ -> assertFailure "Wrong error type"
     Right _ -> assertFailure "Should have caught type mismatch"
 

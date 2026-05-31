@@ -18,11 +18,11 @@ getStatement (Program stmts) idx
 
 -- Extract the expression from a Loc wrapper
 getExpr :: Loc Expr -> Expr
-getExpr (Loc _ e) = e
+getExpr (Loc _ _ e) = e
 
 -- Extract the identifier from a Loc wrapper
 getIdent :: Loc Identifier -> Identifier
-getIdent (Loc _ i) = i
+getIdent (Loc _ _ i) = i
 
 -- Extract operands from specific binary operators
 getAddOperands :: Expr -> Maybe (Expr, Expr)
@@ -103,7 +103,7 @@ testParseSimpleDeclaration = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars typ)) ->
+      Just (Loc _ _ (Declare vars typ)) ->
         let names = map getIdent vars
             expectedNames = ["x"]
          in do
@@ -117,7 +117,7 @@ testParseMultipleDeclarations = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars typ)) ->
+      Just (Loc _ _ (Declare vars typ)) ->
         let names = map getIdent vars
             expectedNames = ["x", "y"]
          in do
@@ -132,7 +132,7 @@ testParseBoolDeclaration = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars typ)) ->
+      Just (Loc _ _ (Declare vars typ)) ->
         let names = map getIdent vars
          in do
               assertEqual "Variable name" ["flag"] names
@@ -146,12 +146,12 @@ testParseMixedTypes = TestCase $ do
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> do
       case getStatement prog 0 of
-        Just (Loc _ (Declare vars1 typ1)) -> do
+        Just (Loc _ _ (Declare vars1 typ1)) -> do
           assertEqual "First declare type" Int typ1
           assertEqual "First declare names" ["x"] (map getIdent vars1)
         _ -> assertFailure "Expected first Declare statement"
       case getStatement prog 1 of
-        Just (Loc _ (Declare vars2 typ2)) -> do
+        Just (Loc _ _ (Declare vars2 typ2)) -> do
           assertEqual "Second declare type" Bool typ2
           assertEqual "Second declare names" ["flag"] (map getIdent vars2)
         _ -> assertFailure "Expected second Declare statement"
@@ -163,7 +163,7 @@ testParseAssignLiteral = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign var expr)) -> do
+      Just (Loc _ _ (Assign var expr)) -> do
         assertEqual "Variable name" "x" (getIdent var)
         assertBool "Expression equals IntLit 42" (exprEq (IntLit 42) (getExpr expr))
       _ -> assertFailure "Expected Assign statement"
@@ -174,7 +174,7 @@ testParseAssignBoolLiteral = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign var expr)) -> do
+      Just (Loc _ _ (Assign var expr)) -> do
         assertEqual "Variable name" "flag" (getIdent var)
         assertBool "Expression equals BoolLit True" (exprEq (BoolLit True) (getExpr expr))
       _ -> assertFailure "Expected Assign statement"
@@ -185,7 +185,7 @@ testParseAssignVariable = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign var expr)) -> do
+      Just (Loc _ _ (Assign var expr)) -> do
         assertEqual "Variable name" "y" (getIdent var)
         assertBool "Expression equals Var x" (exprEq (Var "x") (getExpr expr))
       _ -> assertFailure "Expected Assign statement"
@@ -197,7 +197,7 @@ testParseAddition = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getAddOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getAddOperands (getExpr expr) of
         Just (IntLit 2, IntLit 3) -> assertBool "Addition parsed correctly" True
         Just (l, r) -> assertFailure $ "Wrong operands: " ++ show l ++ " and " ++ show r
         Nothing -> assertFailure "Expected Add expression"
@@ -209,7 +209,7 @@ testParseSubtraction = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getSubOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getSubOperands (getExpr expr) of
         Just (IntLit 10, IntLit 3) -> assertBool "Subtraction parsed correctly" True
         _ -> assertFailure "Expected Sub expression with operands 10 and 3"
       _ -> assertFailure "Expected Assign statement"
@@ -220,7 +220,7 @@ testParseMultiplication = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getMulOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getMulOperands (getExpr expr) of
         Just (IntLit 2, IntLit 3) -> assertBool "Multiplication parsed correctly" True
         _ -> assertFailure "Expected Mul expression with operands 2 and 3"
       _ -> assertFailure "Expected Assign statement"
@@ -231,7 +231,7 @@ testParseNegation = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getNegOperand (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getNegOperand (getExpr expr) of
         Just (IntLit 5) -> assertBool "Negation parsed correctly" True
         _ -> assertFailure "Expected Neg expression with operand 5"
       _ -> assertFailure "Expected Assign statement"
@@ -243,7 +243,7 @@ testParsePrecedenceMultBeforeAdd = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getAddOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getAddOperands (getExpr expr) of
         Just (IntLit 2, rhsExpr) -> case getMulOperands rhsExpr of
           Just (IntLit 3, IntLit 4) -> assertBool "Precedence correct (mult before add)" True
           _ -> assertFailure "Expected 3 * 4 on right side"
@@ -256,7 +256,7 @@ testParsePrecedenceWithParens = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getMulOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getMulOperands (getExpr expr) of
         Just (lhsExpr, IntLit 4) -> case getAddOperands lhsExpr of
           Just (IntLit 2, IntLit 3) -> assertBool "Parentheses override precedence" True
           _ -> assertFailure "Expected 2 + 3 on left side"
@@ -265,7 +265,7 @@ testParsePrecedenceWithParens = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getMulOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getMulOperands (getExpr expr) of
         Just (lhsExpr, IntLit 4) -> case getAddOperands lhsExpr of
           Just (IntLit 2, IntLit 3) -> assertBool "Parentheses override precedence" True
           _ -> assertFailure "Expected 2 + 3 on left side"
@@ -279,7 +279,7 @@ testParseEquality = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getEqOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getEqOperands (getExpr expr) of
         Just (IntLit 5, IntLit 5) -> assertBool "Equality parsed correctly" True
         _ -> assertFailure "Expected Eq with operands 5 and 5"
       _ -> assertFailure "Expected Assign statement"
@@ -290,7 +290,7 @@ testParseInequality = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getNeqOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getNeqOperands (getExpr expr) of
         Just (IntLit 3, IntLit 4) -> assertBool "Inequality parsed correctly" True
         _ -> assertFailure "Expected Neq with operands 3 and 4"
       _ -> assertFailure "Expected Assign statement"
@@ -301,7 +301,7 @@ testParseLessThan = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getLtOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getLtOperands (getExpr expr) of
         Just (IntLit 2, IntLit 5) -> assertBool "Less than parsed correctly" True
         _ -> assertFailure "Expected Lt with operands 2 and 5"
       _ -> assertFailure "Expected Assign statement"
@@ -312,7 +312,7 @@ testParseGreaterThan = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getGtOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getGtOperands (getExpr expr) of
         Just (IntLit 10, IntLit 3) -> assertBool "Greater than parsed correctly" True
         _ -> assertFailure "Expected Gt with operands 10 and 3"
       _ -> assertFailure "Expected Assign statement"
@@ -323,7 +323,7 @@ testParseLessEqual = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getLeqOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getLeqOperands (getExpr expr) of
         Just (IntLit 3, IntLit 8) -> assertBool "Less or equal parsed correctly" True
         _ -> assertFailure "Expected Leq with operands 3 and 8"
       _ -> assertFailure "Expected Assign statement"
@@ -334,7 +334,7 @@ testParseGreaterEqual = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getGeqOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getGeqOperands (getExpr expr) of
         Just (IntLit 15, IntLit 5) -> assertBool "Greater or equal parsed correctly" True
         _ -> assertFailure "Expected Geq with operands 15 and 5"
       _ -> assertFailure "Expected Assign statement"
@@ -346,7 +346,7 @@ testParseAnd = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getAndOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getAndOperands (getExpr expr) of
         Just (BoolLit True, BoolLit False) -> assertBool "And parsed correctly" True
         _ -> assertFailure "Expected And with operands T and F"
       _ -> assertFailure "Expected Assign statement"
@@ -357,7 +357,7 @@ testParseOr = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getOrOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getOrOperands (getExpr expr) of
         Just (BoolLit True, BoolLit False) -> assertBool "Or parsed correctly" True
         _ -> assertFailure "Expected Or with operands T and F"
       _ -> assertFailure "Expected Assign statement"
@@ -368,7 +368,7 @@ testParseNot = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getNotOperand (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getNotOperand (getExpr expr) of
         Just (BoolLit True) -> assertBool "Not parsed correctly" True
         _ -> assertFailure "Expected Not with operand T"
       _ -> assertFailure "Expected Assign statement"
@@ -379,7 +379,7 @@ testParseImplies = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getImpliesOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getImpliesOperands (getExpr expr) of
         Just (BoolLit True, BoolLit False) -> assertBool "Implies parsed correctly" True
         _ -> assertFailure "Expected Implies with operands T and F"
       _ -> assertFailure "Expected Assign statement"
@@ -390,7 +390,7 @@ testParseIff = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getIffOperands (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getIffOperands (getExpr expr) of
         Just (BoolLit True, BoolLit False) -> assertBool "Iff parsed correctly" True
         _ -> assertFailure "Expected Iff with operands T and F"
       _ -> assertFailure "Expected Assign statement"
@@ -402,7 +402,7 @@ testParseSimpleAssert = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assert expr)) ->
+      Just (Loc _ _ (Assert expr)) ->
         assertBool "Assert expression" (exprEq (BoolLit True) (getExpr expr))
       _ -> assertFailure "Expected Assert statement"
 
@@ -412,7 +412,7 @@ testParseAssertComparison = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assert expr)) -> case getGeqOperands (getExpr expr) of
+      Just (Loc _ _ (Assert expr)) -> case getGeqOperands (getExpr expr) of
         Just (IntLit 5, IntLit 0) -> assertBool "Comparison assertion parsed" True
         _ -> assertFailure "Expected Geq in assert"
       _ -> assertFailure "Expected Assert statement"
@@ -423,7 +423,7 @@ testParseAssertLogical = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assert expr)) -> case getAndOperands (getExpr expr) of
+      Just (Loc _ _ (Assert expr)) -> case getAndOperands (getExpr expr) of
         Just (BoolLit True, BoolLit False) -> assertBool "Logical assertion parsed" True
         _ -> assertFailure "Expected And in assert"
       _ -> assertFailure "Expected Assert statement"
@@ -435,7 +435,7 @@ testParseWithLineComment = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars typ)) ->
+      Just (Loc _ _ (Declare vars typ)) ->
         let names = map getIdent vars
          in do
               assertEqual "Variable name" ["x"] names
@@ -448,7 +448,7 @@ testParseWithCommentAfter = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars typ)) ->
+      Just (Loc _ _ (Declare vars typ)) ->
         let names = map getIdent vars
          in do
               assertEqual "Variable name" ["x"] names
@@ -463,13 +463,13 @@ testParseCompleteProgram = TestCase $ do
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> do
       case getStatement prog 0 of
-        Just (Loc _ (Declare _ _)) -> return ()
+        Just (Loc _ _ (Declare _ _)) -> return ()
         _ -> assertFailure "Expected Declare statement"
       case getStatement prog 1 of
-        Just (Loc _ (Assign _ _)) -> return ()
+        Just (Loc _ _ (Assign _ _)) -> return ()
         _ -> assertFailure "Expected Assign statement"
       case getStatement prog 2 of
-        Just (Loc _ (Assert _)) -> assertBool "Complete program parsed" True
+        Just (Loc _ _ (Assert _)) -> assertBool "Complete program parsed" True
         _ -> assertFailure "Expected Assert statement"
 
 testParseProductionExample :: Test
@@ -479,12 +479,12 @@ testParseProductionExample = TestCase $ do
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> do
       case getStatement prog 0 of
-        Just (Loc _ (Declare vars _)) ->
+        Just (Loc _ _ (Declare vars _)) ->
           let names = map getIdent vars
            in assertEqual "Declared names" ["product_a", "product_b"] names
         _ -> assertFailure "Expected Declare"
       case getStatement prog 1 of
-        Just (Loc _ (Assign _ _)) -> assertBool "Production example parsed" True
+        Just (Loc _ _ (Assign _ _)) -> assertBool "Production example parsed" True
         _ -> assertFailure "Expected Assign"
 
 testParseEmpty :: Test
@@ -512,7 +512,7 @@ testParseVarWithUnderscore = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars _)) ->
+      Just (Loc _ _ (Declare vars _)) ->
         let names = map getIdent vars
          in assertEqual "Variable name with underscore" ["labor_hours_used"] names
       _ -> assertFailure "Expected Declare statement"
@@ -523,7 +523,7 @@ testParseVarWithNumbers = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Declare vars _)) ->
+      Just (Loc _ _ (Declare vars _)) ->
         let names = map getIdent vars
          in assertEqual "Variable name with numbers" ["var123"] names
       _ -> assertFailure "Expected Declare statement"
@@ -550,7 +550,7 @@ testParseLargeNumber = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) ->
+      Just (Loc _ _ (Assign _ expr)) ->
         assertBool "Large number" (exprEq (IntLit 999999999) (getExpr expr))
       _ -> assertFailure "Expected Assign with large number"
 
@@ -561,7 +561,7 @@ testParseNegativeNumber = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getNegOperand (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getNegOperand (getExpr expr) of
         Just (IntLit 42) -> assertBool "Negative number parsed" True
         _ -> assertFailure "Expected Neg with operand 42"
       _ -> assertFailure "Expected Assign"
@@ -572,7 +572,7 @@ testParseNestedNegation = TestCase $ do
   case parseProgram "test" input of
     Left err -> assertFailure $ "Failed to parse: " ++ errorBundlePretty err
     Right prog -> case getStatement prog 0 of
-      Just (Loc _ (Assign _ expr)) -> case getNegOperand (getExpr expr) of
+      Just (Loc _ _ (Assign _ expr)) -> case getNegOperand (getExpr expr) of
         Just negExpr -> case getNegOperand negExpr of
           Just (IntLit 5) -> assertBool "Nested negation parsed correctly" True
           _ -> assertFailure "Expected inner negation of 5"

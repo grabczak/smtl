@@ -7,25 +7,26 @@ import Data.Char
 import Data.List ((!?))
 
 typeErrorPretty :: String -> (Loc TypeError) -> String
-typeErrorPretty file (Loc ((SourcePos name line column)) err) = case err of
+typeErrorPretty file (Loc startPos spanLen err) = case err of
   UnboundVariable var ->
-    formatError ("unbound variable " ++ "'" ++ var ++ "'")
+    formatError $ "unbound variable " ++ "'" ++ var ++ "'"
   DuplicateIdentifier var ->
-    formatError ("duplicate identifier " ++ "'" ++ var ++ "'")
+    formatError $ "duplicate identifier " ++ "'" ++ var ++ "'"
   TypeMismatch expected actual ->
-    formatError ("expected " ++ map toLower (show expected) ++ ", but got " ++ map toLower (show actual))
+    formatError $ "expected " ++ lowercase expected ++ ", but got " ++ lowercase actual
  where
+  lowercase x = map toLower (show x)
+  l = unPos (sourceLine startPos)
+  c = unPos (sourceColumn startPos)
+  lineStr = show l
+  content = maybe "" id (lines file !? (l - 1))
+  pointer = replicate (max 0 (c - 1)) ' ' ++ replicate spanLen '~'
+  spacing = replicate (length lineStr + 1) ' '
   formatError msg =
-    let l = unPos line
-        c = unPos column
-        lineStr = show l
-        content = maybe "" id (lines file !? (l - 1))
-        pointer = replicate (max 0 (c - 1)) ' ' ++ "^"
-        spacing = replicate (length lineStr + 1) ' '
-     in unlines
-          [ name ++ ":" ++ lineStr ++ ":" ++ show c ++ ":"
-          , spacing ++ "|"
-          , lineStr ++ " | " ++ content
-          , spacing ++ "| " ++ pointer
-          , msg
-          ]
+    unlines
+      [ sourceName startPos ++ ":" ++ lineStr ++ ":" ++ show c ++ ":"
+      , spacing ++ "|"
+      , lineStr ++ " | " ++ content
+      , spacing ++ "| " ++ pointer
+      , msg
+      ]
