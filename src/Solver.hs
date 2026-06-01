@@ -1,5 +1,6 @@
 module Solver (smtlib) where
 
+import Control.Monad.State
 import qualified Data.List as L
 import qualified Data.Map as M
 
@@ -9,55 +10,62 @@ import AST
 type Env = M.Map Identifier (Loc Expr)
 
 -- Substitute an expression without location wrapper
-substituteExpr' :: Env -> Expr -> Expr
-substituteExpr' env expr = case expr of
-  Var v -> case M.lookup v env of
-    Just e -> node $ go env e
-    Nothing -> Var v
-  BoolLit b -> BoolLit b
-  IntLit n -> IntLit n
-  Not e -> Not (go env e)
-  And p q -> And (go env p) (go env q)
-  Or p q -> Or (go env p) (go env q)
-  Implies p q -> Implies (go env p) (go env q)
-  Iff p q -> Iff (go env p) (go env q)
-  Neg e -> Neg (go env e)
-  Add m n -> Add (go env m) (go env n)
-  Sub m n -> Sub (go env m) (go env n)
-  Mul m n -> Mul (go env m) (go env n)
-  Eq m n -> Eq (go env m) (go env n)
-  Neq m n -> Neq (go env m) (go env n)
-  Lt m n -> Lt (go env m) (go env n)
-  Gt m n -> Gt (go env m) (go env n)
-  Leq m n -> Leq (go env m) (go env n)
-  Geq m n -> Geq (go env m) (go env n)
+substituteExpr :: Expr -> State Env Expr
+substituteExpr expr = case expr of
+  Var v -> do
+    env <- get
+    case M.lookup v env of
+      Just e -> go e >>= return . node
+      Nothing -> return $ Var v
+  BoolLit b -> return $ BoolLit b
+  IntLit n -> return $ IntLit n
+  Not p -> Not <$> go p
+  And p q -> And <$> go p <*> go q
+  Or p q -> Or <$> go p <*> go q
+  Implies p q -> Implies <$> go p <*> go q
+  Iff p q -> Iff <$> go p <*> go q
+  Neg m -> Neg <$> go m
+  Add m n -> Add <$> go m <*> go n
+  Sub m n -> Sub <$> go m <*> go n
+  Mul m n -> Mul <$> go m <*> go n
+  Eq m n -> Eq <$> go m <*> go n
+  Neq m n -> Neq <$> go m <*> go n
+  Lt m n -> Lt <$> go m <*> go n
+  Gt m n -> Gt <$> go m <*> go n
+  Leq m n -> Leq <$> go m <*> go n
+  Geq m n -> Geq <$> go m <*> go n
  where
-  go = substituteExpr
+  go = substituteLocExpr
 
 -- Substitute a located expression
-substituteExpr :: Env -> (Loc Expr) -> Loc Expr
-substituteExpr env (Loc pos spanLen expr) = Loc pos spanLen (substituteExpr' env expr)
+substituteLocExpr :: (Loc Expr) -> State Env (Loc Expr)
+substituteLocExpr (Loc pos spanLen expr) = do
+  expr' <- (substituteExpr expr)
+  return $ Loc pos spanLen expr'
 
 -- Substitute a statement without location wrapper
-substituteStatement' :: Env -> Statement -> (Env, Statement)
-substituteStatement' env statement = case statement of
-  Declare v t -> (env, Declare v t)
-  Assign (Loc pos spanLen v) e -> (M.insert v e' env, Assign (Loc pos spanLen v) (substituteExpr env e))
-   where
-    e' = substituteExpr env e
-  Assert e -> (env, Assert (substituteExpr env e))
+substituteStatement :: Statement -> State Env Statement
+substituteStatement statement = case statement of
+  Declare vs t -> return $ Declare vs t
+  Assign (Loc pos spanLen v) e -> do
+    e' <- substituteLocExpr e
+    modify $ M.insert v e'
+    return $ Assign (Loc pos spanLen v) e'
+  Assert e -> do
+    e' <- substituteLocExpr e
+    return $ Assert e'
 
 -- Substitute a located statement
-substituteStatement :: Env -> (Loc Statement) -> (Env, (Loc Statement))
-substituteStatement env (Loc pos spanLen statement) = (env', Loc pos spanLen statement')
- where
-  (env', statement') = substituteStatement' env statement
+substituteLocStatement :: (Loc Statement) -> State Env (Loc Statement)
+substituteLocStatement (Loc pos spanLen statement) = do
+  statement' <- substituteStatement statement
+  return $ Loc pos spanLen statement'
 
 -- Substitute entire program
-substituteProgram :: Env -> Program -> Program
-substituteProgram env (Program statements) = Program statements'
+substituteProgram :: Program -> Program
+substituteProgram (Program statements) = Program $ evalState (go statements) M.empty
  where
-  (_, statements') = L.mapAccumL substituteStatement env statements
+  go stmts = mapM substituteLocStatement stmts
 
 -- Convert to SMT-LIB format
 
@@ -91,17 +99,17 @@ smtlibStatement (Loc _ _ statement) = case statement of
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""
 
-theory, check, get, exit :: String
-theory = "(set-logic QF_NIA)"
-check = "(check-sat)"
-get = "(get-model)"
+setLogic, checkSat, getModel, exit :: String
+setLogic = "(set-logic QF_NIA)"
+checkSat = "(check-sat)"
+getModel = "(get-model)"
 exit = "(exit)"
 
 smtlib :: Program -> String
 smtlib program =
   unlines $
-    [theory]
+    [setLogic]
       ++ filter (not . null) (map smtlibStatement statements)
-      ++ [check, get, exit]
+      ++ [checkSat, getModel, exit]
  where
-  Program statements = substituteProgram M.empty program
+  Program statements = substituteProgram program
