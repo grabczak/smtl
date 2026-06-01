@@ -1,42 +1,46 @@
+{-# LANGUAGE GHC2024 #-}
+
 module AST (
   Loc (..),
   Identifier,
-  Type (..),
+  Sort (..),
+  Lit (..),
   Expr (..),
   Statement (..),
   Program (..),
-  TypeError (..),
+  SemanticError (..),
 ) where
 
-import qualified Data.List as L
+import Data.List qualified as L
 import Text.Megaparsec
 
--- Location wrapper, tracks source position and span length
 data Loc a = Loc
-  { loc :: SourcePos
-  , len :: Int
+  { startPos :: SourcePos
+  , endPos :: SourcePos
   , node :: a
   }
 
 instance (Show a) => Show (Loc a) where
-  show (Loc _ _ n) = show n
+  show x = show $ node x
 
 type Identifier = String
 
-data Type = Bool | Int
+data Sort = Bool | Int
+  deriving (Eq, Show)
+
+data Lit = LitBool Bool | LitInt Int
   deriving (Eq, Show)
 
 data Expr
   = -- Variables
     Var Identifier
   | -- Literals
-    BoolLit Bool
-  | IntLit Int
+    Lit Lit
   | -- Logical operators
     Not (Loc Expr)
   | And (Loc Expr) (Loc Expr)
   | Or (Loc Expr) (Loc Expr)
-  | Implies (Loc Expr) (Loc Expr)
+  | Imp (Loc Expr) (Loc Expr)
   | Iff (Loc Expr) (Loc Expr)
   | -- Arithmetic operators
     Neg (Loc Expr)
@@ -52,41 +56,45 @@ data Expr
   | Geq (Loc Expr) (Loc Expr)
 
 instance Show Expr where
-  show (Var v) = v
-  show (BoolLit b) = show b
-  show (IntLit i) = show i
-  show (Not e) = "(Not " ++ show e ++ ")"
-  show (And e1 e2) = "(And " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Or e1 e2) = "(Or " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Implies e1 e2) = "(Implies " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Iff e1 e2) = "(Iff " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Neg e) = "(Neg " ++ show e ++ ")"
-  show (Add e1 e2) = "(Add " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Sub e1 e2) = "(Sub " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Mul e1 e2) = "(Mul " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Eq e1 e2) = "(Eq " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Neq e1 e2) = "(Neq " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Lt e1 e2) = "(Lt " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Gt e1 e2) = "(Gt " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Leq e1 e2) = "(Leq " ++ show e1 ++ " " ++ show e2 ++ ")"
-  show (Geq e1 e2) = "(Geq " ++ show e1 ++ " " ++ show e2 ++ ")"
+  show = \case
+    Var v -> v
+    Lit l -> show l
+    Not p -> wrap1 "Not" p
+    And p q -> wrap2 "And" p q
+    Or p q -> wrap2 "Or" p q
+    Imp p q -> wrap2 "Imp" p q
+    Iff p q -> wrap2 "Iff" p q
+    Neg e -> wrap1 "Neg" e
+    Add e f -> wrap2 "Add" e f
+    Sub e f -> wrap2 "Sub" e f
+    Mul e f -> wrap2 "Mul" e f
+    Eq e f -> wrap2 "Eq" e f
+    Neq e f -> wrap2 "Neq" e f
+    Lt e f -> wrap2 "Lt" e f
+    Gt e f -> wrap2 "Gt" e f
+    Leq e f -> wrap2 "Leq" e f
+    Geq e f -> wrap2 "Geq" e f
+   where
+    wrap1 cons e = "(" ++ cons ++ " " ++ show e ++ ")"
+    wrap2 cons e f = "(" ++ cons ++ " " ++ show e ++ " " ++ show f ++ ")"
 
 data Statement
-  = Declare [Loc Identifier] Type
+  = Declare [Loc Identifier] (Loc Sort)
   | Assign (Loc Identifier) (Loc Expr)
   | Assert (Loc Expr)
 
 instance Show Statement where
-  show (Declare vs t) = "Declare [" ++ L.intercalate ", " (map node vs) ++ "] " ++ show t
-  show (Assign v e) = "Assign " ++ node v ++ " " ++ show e
-  show (Assert e) = "Assert " ++ show e
+  show = \case
+    Declare vs t -> "Declare [" ++ L.intercalate ", " (map node vs) ++ "] " ++ show t
+    Assign v e -> "Assign " ++ node v ++ " " ++ show e
+    Assert e -> "Assert " ++ show e
 
 data Program = Program [Loc Statement]
 
 instance Show Program where
   show (Program statements) = unlines $ map show statements
 
-data TypeError
+data SemanticError
   = UnboundVariable Identifier
   | DuplicateIdentifier Identifier
-  | TypeMismatch Type Type
+  | TypeMismatch Sort Sort

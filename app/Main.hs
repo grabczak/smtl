@@ -12,7 +12,6 @@ import Parser
 import Solver
 import TypeChecker
 
--- Spawns Z3 as a subprocess, sends the input, and captures the output
 callZ3 :: String -> IO String
 callZ3 input = do
   (Just hin, Just hout, _, _) <-
@@ -26,11 +25,8 @@ callZ3 input = do
   hClose hin
   hGetContents hout
 
--- Error catch helper
 handleError :: SomeException -> IO a
-handleError e = do
-  putStrLn $ show (e :: SomeException)
-  exitFailure
+handleError e = putStrLn (show e) >> exitFailure
 
 main :: IO ()
 main = do

@@ -69,9 +69,6 @@ test-suite smtl-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      ParserSpec
-      SolverSpec
-      TypeCheckerSpec
       Paths_smtl
   autogen-modules:
       Paths_smtl

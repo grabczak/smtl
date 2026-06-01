@@ -1,28 +1,31 @@
+{-# LANGUAGE GHC2024 #-}
+
 module Solver (smtlib) where
 
 import Control.Monad.State
-import qualified Data.List as L
-import qualified Data.Map as M
+import Data.List qualified as L
+import Data.Map qualified as M
 
 import AST
 
--- Environment for substitutions in assignments and assertions
+-- Substitution of variables with their assigned expressions
+
 type Env = M.Map Identifier (Loc Expr)
 
--- Substitute an expression without location wrapper
 substituteExpr :: Expr -> State Env Expr
-substituteExpr expr = case expr of
+substituteExpr = \case
   Var v -> do
     env <- get
     case M.lookup v env of
       Just e -> go e >>= return . node
       Nothing -> return $ Var v
-  BoolLit b -> return $ BoolLit b
-  IntLit n -> return $ IntLit n
+  Lit l -> case l of
+    LitBool b -> return $ Lit (LitBool b)
+    LitInt n -> return $ Lit (LitInt n)
   Not p -> Not <$> go p
   And p q -> And <$> go p <*> go q
   Or p q -> Or <$> go p <*> go q
-  Implies p q -> Implies <$> go p <*> go q
+  Imp p q -> Imp <$> go p <*> go q
   Iff p q -> Iff <$> go p <*> go q
   Neg m -> Neg <$> go m
   Add m n -> Add <$> go m <*> go n
@@ -37,37 +40,29 @@ substituteExpr expr = case expr of
  where
   go = substituteLocExpr
 
--- Substitute a located expression
 substituteLocExpr :: (Loc Expr) -> State Env (Loc Expr)
-substituteLocExpr (Loc pos spanLen expr) = do
-  expr' <- (substituteExpr expr)
-  return $ Loc pos spanLen expr'
+substituteLocExpr (Loc startPos endPos expr) = substituteExpr expr >>= return . Loc startPos endPos
 
--- Substitute a statement without location wrapper
 substituteStatement :: Statement -> State Env Statement
 substituteStatement statement = case statement of
-  Declare vs t -> return $ Declare vs t
-  Assign (Loc pos spanLen v) e -> do
+  Declare vs s -> return $ Declare vs s
+  Assign (Loc startPos endPos v) e -> do
     e' <- substituteLocExpr e
     modify $ M.insert v e'
-    return $ Assign (Loc pos spanLen v) e'
+    return $ Assign (Loc startPos endPos v) e'
   Assert e -> do
     e' <- substituteLocExpr e
     return $ Assert e'
 
--- Substitute a located statement
 substituteLocStatement :: (Loc Statement) -> State Env (Loc Statement)
-substituteLocStatement (Loc pos spanLen statement) = do
-  statement' <- substituteStatement statement
-  return $ Loc pos spanLen statement'
+substituteLocStatement (Loc startPos endPos statement) = substituteStatement statement >>= return . Loc startPos endPos
 
--- Substitute entire program
 substituteProgram :: Program -> Program
-substituteProgram (Program statements) = Program $ evalState (go statements) M.empty
+substituteProgram (Program statements) = Program $ evalState go M.empty
  where
-  go stmts = mapM substituteLocStatement stmts
+  go = mapM substituteLocStatement statements
 
--- Convert to SMT-LIB format
+-- Conversion to SMT-LIB format
 
 smtlibWrap :: String -> [String] -> String
 smtlibWrap op args = "(" ++ op ++ " " ++ L.intercalate " " args ++ ")"
@@ -75,12 +70,13 @@ smtlibWrap op args = "(" ++ op ++ " " ++ L.intercalate " " args ++ ")"
 smtlibExpr :: (Loc Expr) -> String
 smtlibExpr (Loc _ _ expr) = case expr of
   Var v -> v
-  BoolLit b -> if b then "true" else "false"
-  IntLit n -> show n
+  Lit l -> case l of
+    LitBool b -> if b then "true" else "false"
+    LitInt n -> show n
   Not e -> smtlibWrap "not" [smtlibExpr e]
   And e1 e2 -> smtlibWrap "and" [smtlibExpr e1, smtlibExpr e2]
   Or e1 e2 -> smtlibWrap "or" [smtlibExpr e1, smtlibExpr e2]
-  Implies e1 e2 -> smtlibWrap "=>" [smtlibExpr e1, smtlibExpr e2]
+  Imp e1 e2 -> smtlibWrap "=>" [smtlibExpr e1, smtlibExpr e2]
   Iff e1 e2 -> smtlibWrap "=" [smtlibExpr e1, smtlibExpr e2]
   Neg e -> smtlibWrap "-" [smtlibExpr e]
   Add e1 e2 -> smtlibWrap "+" [smtlibExpr e1, smtlibExpr e2]
@@ -95,7 +91,7 @@ smtlibExpr (Loc _ _ expr) = case expr of
 
 smtlibStatement :: (Loc Statement) -> String
 smtlibStatement (Loc _ _ statement) = case statement of
-  Declare vs t -> L.intercalate "\n" $ map (\(Loc _ _ v) -> smtlibWrap "declare-const" [v, show t]) vs
+  Declare vs s -> L.intercalate "\n" $ map (\(Loc _ _ v) -> smtlibWrap "declare-const" [v, show s]) vs
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""
 
