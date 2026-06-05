@@ -30,6 +30,8 @@ substituteExpr = \case
   Add m n -> Add <$> go m <*> go n
   Sub m n -> Sub <$> go m <*> go n
   Mul m n -> Mul <$> go m <*> go n
+  Div m n -> Div <$> go m <*> go n
+  Mod m n -> Mod <$> go m <*> go n
   Eq m n -> Eq <$> go m <*> go n
   Neq m n -> Neq <$> go m <*> go n
   Lt m n -> Lt <$> go m <*> go n
@@ -86,6 +88,8 @@ smtlibExpr (Loc _ _ expr) = case expr of
   Add e1 e2 -> smtlibWrap "+" [smtlibExpr e1, smtlibExpr e2]
   Sub e1 e2 -> smtlibWrap "-" [smtlibExpr e1, smtlibExpr e2]
   Mul e1 e2 -> smtlibWrap "*" [smtlibExpr e1, smtlibExpr e2]
+  Div e1 e2 -> smtlibWrap "div" [smtlibExpr e1, smtlibExpr e2]
+  Mod e1 e2 -> smtlibWrap "mod" [smtlibExpr e1, smtlibExpr e2]
   Eq e1 e2 -> smtlibWrap "=" [smtlibExpr e1, smtlibExpr e2]
   Neq e1 e2 -> smtlibWrap "not" [smtlibWrap "=" [smtlibExpr e1, smtlibExpr e2]]
   Lt e1 e2 -> smtlibWrap "<" [smtlibExpr e1, smtlibExpr e2]

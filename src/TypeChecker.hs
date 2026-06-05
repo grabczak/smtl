@@ -44,6 +44,8 @@ checkExpr (Loc startPos endPos expr) = case expr of
   Add m n -> checkOp2 m n Int Int
   Sub m n -> checkOp2 m n Int Int
   Mul m n -> checkOp2 m n Int Int
+  Div m n -> checkOp2 m n Int Int
+  Mod m n -> checkOp2 m n Int Int
   Eq m n -> checkOp2 m n Int Bool
   Neq m n -> checkOp2 m n Int Bool
   Lt m n -> checkOp2 m n Int Bool

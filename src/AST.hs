@@ -49,6 +49,8 @@ data Expr
   | Add (Loc Expr) (Loc Expr)
   | Sub (Loc Expr) (Loc Expr)
   | Mul (Loc Expr) (Loc Expr)
+  | Div (Loc Expr) (Loc Expr)
+  | Mod (Loc Expr) (Loc Expr)
   | -- Comparison operators
     Eq (Loc Expr) (Loc Expr)
   | Neq (Loc Expr) (Loc Expr)
@@ -68,15 +70,17 @@ instance Show Expr where
     Imp p q -> wrap2 "Imp" p q
     Iff p q -> wrap2 "Iff" p q
     Neg e -> wrap1 "Neg" e
-    Add e f -> wrap2 "Add" e f
-    Sub e f -> wrap2 "Sub" e f
-    Mul e f -> wrap2 "Mul" e f
-    Eq e f -> wrap2 "Eq" e f
-    Neq e f -> wrap2 "Neq" e f
-    Lt e f -> wrap2 "Lt" e f
-    Gt e f -> wrap2 "Gt" e f
-    Leq e f -> wrap2 "Leq" e f
-    Geq e f -> wrap2 "Geq" e f
+    Add m n -> wrap2 "Add" m n
+    Sub m n -> wrap2 "Sub" m n
+    Mul m n -> wrap2 "Mul" m n
+    Div m n -> wrap2 "Div" m n
+    Mod m n -> wrap2 "Mod" m n
+    Eq m n -> wrap2 "Eq" m n
+    Neq m n -> wrap2 "Neq" m n
+    Lt m n -> wrap2 "Lt" m n
+    Gt m n -> wrap2 "Gt" m n
+    Leq m n -> wrap2 "Leq" m n
+    Geq m n -> wrap2 "Geq" m n
    where
     wrap1 cons e = "(" ++ cons ++ " " ++ show e ++ ")"
     wrap2 cons e f = "(" ++ cons ++ " " ++ show e ++ " " ++ show f ++ ")"
@@ -92,7 +96,7 @@ data Statement
 
 instance Show Statement where
   show = \case
-    SetLogic l -> show l
+    SetLogic l -> "SetLogic " ++ show l
     Declare vs t -> "Declare [" ++ L.intercalate ", " (map node vs) ++ "] " ++ show t
     Assign v e -> "Assign " ++ node v ++ " " ++ show e
     Assert e -> "Assert " ++ show e

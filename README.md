@@ -43,28 +43,108 @@ $ stack test
 ```
 # Comment
 
-# Logic (QF_LIA or QF_NIA)
-set logic QF_NIA
+# Theory: QF_LIA or QF_NIA
+set logic QF_LIA
 
 # Declarations
 var p, q : bool
-var m, n : int
 
 # Assignments
 let f = (p \/ ~p) /\ (F => T)
 let g = (q /\ ~q) \/ (p <=> q)
-let h = m * m + 1 < -5 * n
 
 # Assertions
 assert f /\ g
-assert h
-assert (m > 0 /\ n >= 0) \/ (m < 0 /\ n <= 0)
-assert (m == n) /\ n != -2
 
 # Output commands
 check sat
 get model
 exit
+```
+
+```
+# Theory: QF_LIA or QF_NIA
+set logic QF_NIA
+
+# Declarations
+var a, b, x, y, d : int
+
+# Assignments
+let bezout = a * x + b * y == d
+
+# Assertions
+assert a == 12 /\ b == 18
+assert d >= 0
+assert a % d == 0 /\ b % d == 0
+assert bezout
+
+# Output commands
+check sat
+get model
+exit
+```
+
+## Syntax
+
+### Variable Declaration
+
+Use `var` to declare variables with their types:
+
+```
+var p, q : bool
+var a, b, x, y, d : int
+```
+
+### Expressions
+
+#### Logical Operators
+
+| Operator | Meaning     | Example   |
+| -------- | ----------- | --------- |
+| `~`      | Negation    | `~p`      |
+| `\/`     | Alternative | `p \/ q`  |
+| `/\`     | Conjuction  | `p /\ q`  |
+| `=>`     | Implication | `p => q`  |
+| `<=>`    | Equivalence | `p <=> q` |
+
+#### Arithmetic Operators
+
+| Operator | Meaning          | Example |
+| -------- | ---------------- | ------- |
+| `-`      | Negation         | `-a`    |
+| `+`      | Addition         | `a + b` |
+| `-`      | Subtraction      | `a - b` |
+| `*`      | Multiplication   | `a * b` |
+| `/`      | Integer division | `a / b` |
+| `%`      | Modulo           | `a % b` |
+
+#### Comparison Operators
+
+| Operator | Meaning          | Example  |
+| -------- | ---------------- | -------- |
+| `=`      | Equality         | `a = b`  |
+| `!=`     | Inequality       | `a != b` |
+| `<`      | Less than        | `a < b`  |
+| `>`      | Greater than     | `a > b`  |
+| `<=`     | Less or equal    | `a <= b` |
+| `>=`     | Greater or equal | `a >= b` |
+
+### Variable Assignment
+
+Use `let` to assign an expression to an identifier:
+
+```
+let excluded_middle = p \/ ~p
+let bezout_identity = a * x + b * y == d
+```
+
+### Assertions
+
+Use `assert` to ensure that an expression must be true:
+
+```
+assert excluded_middle
+assert bezout_identity
 ```
 
 ## Implementation

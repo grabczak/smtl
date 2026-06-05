@@ -1,22 +1,17 @@
-# Comment
-
-# Logic (QF_LIA or QF_NIA)
+# Theory: QF_LIA or QF_NIA
 set logic QF_NIA
 
 # Declarations
-var p, q : bool
-var m, n : int
+var a, b, x, y, d : int
 
 # Assignments
-let f = (p \/ ~p) /\ (F => T)
-let g = (q /\ ~q) \/ (p <=> q)
-let h = m * m + 1 < -5 * n
+let bezout = a * x + b * y == d
 
 # Assertions
-assert f /\ g
-assert h
-assert (m > 0 /\ n >= 0) \/ (m < 0 /\ n <= 0)
-assert (m == n) /\ n != -2
+assert a == 12 /\ b == 18
+assert d >= 0
+assert a % d == 0 /\ b % d == 0
+assert bezout
 
 # Output commands
 check sat

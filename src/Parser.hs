@@ -79,13 +79,20 @@ locate parser = do
 
 locateOp1 :: String -> (Loc Expr -> Expr) -> Parser (Loc Expr -> Loc Expr)
 locateOp1 op cons = do
-  _ <- symbol op
+  _ <- lexeme $ try $ string op
   return $ \e -> Loc (startPos e) (endPos e) (cons e)
 
 locateOp2 :: String -> (Loc Expr -> Loc Expr -> Expr) -> Parser (Loc Expr -> Loc Expr -> Loc Expr)
 locateOp2 op cons = do
-  _ <- symbol op
+  _ <- lexeme $ try $ sym op
   return $ \e f -> Loc (startPos e) (endPos f) (cons e f)
+ where
+  sym "<" = string "<" <* notFollowedBy (char '=')
+  sym ">" = string ">" <* notFollowedBy (char '=')
+  sym "<=" = string "<=" <* notFollowedBy (char '>')
+  sym "==" = string "==" <* notFollowedBy (char '>')
+  sym "/" = string "/" <* notFollowedBy (char '\\')
+  sym s = string s
 
 -- Expressions and statements
 
@@ -136,16 +143,18 @@ parens = do
 {- FOURMOLU_DISABLE -}
 operatorTable :: [[Operator Parser (Loc Expr)]]
 operatorTable =
-  [
+  [ 
     [ Prefix (locateOp1  "~"  Not)
     , Prefix (locateOp1  "-"  Neg)
     ]
-  , [ InfixL (locateOp2  "*"  Mul)]
+  , [ InfixL (locateOp2  "*"  Mul)
+    , InfixL (locateOp2  "/"  Div)
+    , InfixL (locateOp2  "%"  Mod)
+    ]
   , [ InfixL (locateOp2  "+"  Add)
     , InfixL (locateOp2  "-"  Sub)
     ]
-  , [ InfixN (locateOp2 "<=>" Iff)
-    , InfixN (locateOp2  "==" Eq)
+  , [ InfixN (locateOp2  "==" Eq)
     , InfixN (locateOp2  "!=" Neq)
     , InfixN (locateOp2  "<=" Leq)
     , InfixN (locateOp2  ">=" Geq)
@@ -154,6 +163,7 @@ operatorTable =
     ]
   , [ InfixL (locateOp2 "/\\" And)]
   , [ InfixL (locateOp2 "\\/" Or)]
+  , [ InfixL (locateOp2 "<=>" Iff)]
   , [ InfixR (locateOp2  "=>" Imp)]
   ]
 {- FOURMOLU_ENABLE -}
