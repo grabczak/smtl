@@ -41,7 +41,7 @@ main = do
         Left parseErr -> putStrLn $ errorBundlePretty parseErr
         Right program -> do
           case checkProgram program of
-            Left typeErr -> putStrLn $ typeErrorPretty content typeErr
+            Left semanticErr -> putStrLn $ semanticErrorPretty content semanticErr
             Right correctProgram -> do
               let z3Input = smtlib correctProgram
               putStrLn "Z3 Input:\n"

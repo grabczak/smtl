@@ -22,12 +22,9 @@ skipLineComment, skipBlockComment :: Parser ()
 skipLineComment = L.skipLineComment "#"
 skipBlockComment = empty
 
--- Space consumers
-sc, scn :: Parser ()
--- Horizontal space only
-sc = L.space hspace1 skipLineComment skipBlockComment
--- Horizontal and vertical space
-scn = L.space space1 skipLineComment skipBlockComment
+-- Space consumer
+sc :: Parser ()
+sc = L.space space1 skipLineComment skipBlockComment
 
 lexeme :: Parser a -> Parser a
 lexeme = L.lexeme sc
@@ -222,12 +219,10 @@ statement = setLogic <|> declare <|> assign <|> assert <|> checkSat <|> getModel
 
 program :: Parser Program
 program = do
-  scn
-  statements <- statement `sepEndBy` sep
+  sc
+  statements <- many (L.nonIndented sc statement)
   eof
   return $ Program statements
- where
-  sep = sc >> some (lexeme newline) >> return ()
 
 parseProgram :: String -> String -> Either (ParseErrorBundle Input Error) Program
 parseProgram path content = parse program path content
