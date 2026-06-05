@@ -1,6 +1,6 @@
 # Comment
 
-# Logic
+# Logic (QF_LIA or QF_NIA)
 set logic QF_NIA
 
 # Declarations
@@ -8,12 +8,15 @@ var p, q : bool
 var m, n : int
 
 # Assignments
-let f = (~p \/ q) /\ (p <=> q) /\ (F => T)
-let g = -m * m + n - 1 < -1
+let f = (p \/ ~p) /\ (F => T)
+let g = (q /\ ~q) \/ (p <=> q)
+let h = m * m + 1 < -5 * n
 
 # Assertions
-assert f
-assert g
+assert f /\ g
+assert h
+assert (m > 0 /\ n >= 0) \/ (m < 0 /\ n <= 0)
+assert (m == n) /\ n != -2
 
 # Output commands
 check sat
