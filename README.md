@@ -41,8 +41,6 @@ $ stack test
 ## Working Example
 
 ```
-# Comment
-
 # Theory: QF_LIA or QF_NIA
 set logic QF_LIA
 
@@ -112,7 +110,7 @@ var a, b, x, y, d : int
 | Operator | Meaning          | Example |
 | -------- | ---------------- | ------- |
 | `-`      | Negation         | `-a`    |
-| `\|•\|`  | Absolute value   | `\|a\|` |
+| `\|·\|`  | Absolute value   | `\|a\|` |
 | `+`      | Addition         | `a + b` |
 | `-`      | Subtraction      | `a - b` |
 | `*`      | Multiplication   | `a * b` |
