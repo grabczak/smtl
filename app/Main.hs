@@ -1,3 +1,5 @@
+{-# LANGUAGE GHC2024 #-}
+
 module Main (main) where
 
 import Control.Exception
@@ -44,6 +46,6 @@ main = do
               let z3Input = smtlib correctProgram
               putStrLn "Z3 Input:\n"
               putStrLn z3Input
-              putStrLn "Z3 Result:\n"
-              z3Result <- catch (callZ3 z3Input) handleError
-              putStr z3Result
+              putStrLn "Z3 Output:\n"
+              z3Output <- catch (callZ3 z3Input) handleError
+              putStr z3Output

@@ -4,7 +4,6 @@ module AST (
   Loc (..),
   Identifier,
   Sort (..),
-  Lit (..),
   Expr (..),
   Statement (..),
   Program (..),
@@ -25,17 +24,16 @@ instance (Show a) => Show (Loc a) where
 
 type Identifier = String
 
+-- Sort, a.k.a. type, of expressions and variables
 data Sort = Bool | Int
-  deriving (Eq, Show)
-
-data Lit = LitBool Bool | LitInt Int
   deriving (Eq, Show)
 
 data Expr
   = -- Variables
     Var Identifier
   | -- Literals
-    Lit Lit
+    LBool Bool
+  | LInt Int
   | -- Logical operators
     Not (Loc Expr)
   | And (Loc Expr) (Loc Expr)
@@ -58,7 +56,8 @@ data Expr
 instance Show Expr where
   show = \case
     Var v -> v
-    Lit l -> show l
+    LBool b -> show b
+    LInt i -> show i
     Not p -> wrap1 "Not" p
     And p q -> wrap2 "And" p q
     Or p q -> wrap2 "Or" p q
@@ -89,7 +88,7 @@ instance Show Statement where
     Assign v e -> "Assign " ++ node v ++ " " ++ show e
     Assert e -> "Assert " ++ show e
 
-data Program = Program [Loc Statement]
+newtype Program = Program [Loc Statement]
 
 instance Show Program where
   show (Program statements) = unlines $ map show statements

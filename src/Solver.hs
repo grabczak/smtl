@@ -19,9 +19,8 @@ substituteExpr = \case
     case M.lookup v env of
       Just e -> go e >>= return . node
       Nothing -> return $ Var v
-  Lit l -> case l of
-    LitBool b -> return $ Lit (LitBool b)
-    LitInt n -> return $ Lit (LitInt n)
+  LBool b -> return $ LBool b
+  LInt n -> return $ LInt n
   Not p -> Not <$> go p
   And p q -> And <$> go p <*> go q
   Or p q -> Or <$> go p <*> go q
@@ -44,7 +43,7 @@ substituteLocExpr :: (Loc Expr) -> State Env (Loc Expr)
 substituteLocExpr (Loc startPos endPos expr) = substituteExpr expr >>= return . Loc startPos endPos
 
 substituteStatement :: Statement -> State Env Statement
-substituteStatement statement = case statement of
+substituteStatement = \case
   Declare vs s -> return $ Declare vs s
   Assign (Loc startPos endPos v) e -> do
     e' <- substituteLocExpr e
@@ -70,9 +69,8 @@ smtlibWrap op args = "(" ++ op ++ " " ++ L.intercalate " " args ++ ")"
 smtlibExpr :: (Loc Expr) -> String
 smtlibExpr (Loc _ _ expr) = case expr of
   Var v -> v
-  Lit l -> case l of
-    LitBool b -> if b then "true" else "false"
-    LitInt n -> show n
+  LBool b -> if b then "true" else "false"
+  LInt n -> show n
   Not e -> smtlibWrap "not" [smtlibExpr e]
   And e1 e2 -> smtlibWrap "and" [smtlibExpr e1, smtlibExpr e2]
   Or e1 e2 -> smtlibWrap "or" [smtlibExpr e1, smtlibExpr e2]
@@ -91,7 +89,7 @@ smtlibExpr (Loc _ _ expr) = case expr of
 
 smtlibStatement :: (Loc Statement) -> String
 smtlibStatement (Loc _ _ statement) = case statement of
-  Declare vs s -> L.intercalate "\n" $ map (\(Loc _ _ v) -> smtlibWrap "declare-const" [v, show s]) vs
+  Declare vs s -> L.intercalate "\n" $ map (\v -> smtlibWrap "declare-const" [node v, show s]) vs
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
   _ -> ""
 

@@ -95,18 +95,22 @@ var = locate $ do
   v <- identifier
   return $ Var v
 
-litBool :: Parser (Loc Expr)
-litBool = locate $ do
-  b <- (keyword "T" >> return True) <|> (keyword "F" >> return False)
-  return $ Lit (LitBool b)
+true, false :: Parser Bool
+true = char 'T' >> return True
+false = char 'F' >> return False
 
-litInt :: Parser (Loc Expr)
-litInt = locate $ do
+lbool :: Parser (Loc Expr)
+lbool = locate $ do
+  b <- true <|> false
+  return $ LBool b
+
+lint :: Parser (Loc Expr)
+lint = locate $ do
   n <- L.decimal
-  return $ Lit (LitInt n)
+  return $ LInt n
 
 lit :: Parser (Loc Expr)
-lit = litBool <|> litInt
+lit = lbool <|> lint
 
 parens :: Parser (Loc Expr)
 parens = do
@@ -142,10 +146,7 @@ operatorTable =
 {- FOURMOLU_ENABLE -}
 
 term :: Parser (Loc Expr)
-term = do
-  t <- parens <|> lit <|> var
-  sc
-  return t
+term = lexeme $ parens <|> lit <|> var
 
 expr :: Parser (Loc Expr)
 expr = makeExprParser term operatorTable
@@ -154,28 +155,23 @@ expr = makeExprParser term operatorTable
 
 declare :: Parser (Loc Statement)
 declare = locate $ do
-  keyword "var"
-  sc
-  v <- (locate identifier) `sepBy` symbol ","
-  sc
+  lexeme $ keyword "var"
+  vs <- lexeme $ (locate identifier) `sepBy` symbol ","
   _ <- symbol ":"
   s <- sort
-  return $ Declare v s
+  return $ Declare vs s
 
 assign :: Parser (Loc Statement)
 assign = locate $ do
-  keyword "let"
-  sc
-  v <- locate identifier
-  sc
+  lexeme $ keyword "let"
+  v <- lexeme $ locate identifier
   _ <- symbol "="
   e <- expr
   return $ Assign v e
 
 assert :: Parser (Loc Statement)
 assert = locate $ do
-  keyword "assert"
-  sc
+  lexeme $ keyword "assert"
   e <- expr
   return $ Assert e
 

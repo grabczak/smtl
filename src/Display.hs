@@ -22,8 +22,6 @@ typeErrorPretty file (Loc start end err) = case err of
       , show startPosLine ++ divider ++ fileLines !! (startPosLine - 1)
       , frontSpace ++ divider ++ replicate (startPosColumn - 1) ' ' ++ replicate (endPosColumn - startPosColumn) '^'
       , str
-      , show start
-      , show end
       ]
   startPosLine = unPos $ sourceLine start
   startPosColumn = unPos $ sourceColumn start
