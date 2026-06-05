@@ -1,5 +1,8 @@
 # Comment
 
+# Logic
+set logic QF_NIA
+
 # Declarations
 var p, q : bool
 var m, n : int
@@ -11,3 +14,8 @@ let g = -m * m + n - 1 < -1
 # Assertions
 assert f
 assert g
+
+# Output commands
+check sat
+get model
+exit

@@ -53,6 +53,7 @@ checkExpr (Loc startPos endPos expr) = case expr of
 
 checkStatement :: (Loc Statement) -> StateT Env (Either (Loc SemanticError)) ()
 checkStatement (Loc _ _ statement) = case statement of
+  SetLogic _ -> return ()
   Declare vs s -> do
     env <- get
     env' <- lift $ foldM go env vs
@@ -71,6 +72,9 @@ checkStatement (Loc _ _ statement) = case statement of
   Assert expr -> do
     s <- checkExpr expr
     when (s /= Bool) $ lift $ Left $ Loc (startPos expr) (endPos expr) $ TypeMismatch Bool s
+  CheckSat -> return ()
+  GetModel -> return ()
+  Exit -> return ()
 
 checkProgram :: Program -> Either (Loc SemanticError) Program
 checkProgram (Program statements) = case evalStateT go M.empty of

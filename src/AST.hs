@@ -2,6 +2,7 @@
 
 module AST (
   Loc (..),
+  Logic (..),
   Identifier,
   Sort (..),
   Expr (..),
@@ -21,6 +22,9 @@ data Loc a = Loc
 
 instance (Show a) => Show (Loc a) where
   show x = show $ node x
+
+data Logic = QF_LIA | QF_NIA
+  deriving (Show)
 
 type Identifier = String
 
@@ -78,15 +82,23 @@ instance Show Expr where
     wrap2 cons e f = "(" ++ cons ++ " " ++ show e ++ " " ++ show f ++ ")"
 
 data Statement
-  = Declare [Loc Identifier] (Loc Sort)
+  = SetLogic (Loc Logic)
+  | Declare [Loc Identifier] (Loc Sort)
   | Assign (Loc Identifier) (Loc Expr)
   | Assert (Loc Expr)
+  | CheckSat
+  | GetModel
+  | Exit
 
 instance Show Statement where
   show = \case
+    SetLogic l -> show l
     Declare vs t -> "Declare [" ++ L.intercalate ", " (map node vs) ++ "] " ++ show t
     Assign v e -> "Assign " ++ node v ++ " " ++ show e
     Assert e -> "Assert " ++ show e
+    CheckSat -> "CheckSat"
+    GetModel -> "GetModel"
+    Exit -> "Exit"
 
 newtype Program = Program [Loc Statement]
 

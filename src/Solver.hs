@@ -44,6 +44,7 @@ substituteLocExpr (Loc startPos endPos expr) = substituteExpr expr >>= return . 
 
 substituteStatement :: Statement -> State Env Statement
 substituteStatement = \case
+  SetLogic l -> return $ SetLogic l
   Declare vs s -> return $ Declare vs s
   Assign (Loc startPos endPos v) e -> do
     e' <- substituteLocExpr e
@@ -52,6 +53,9 @@ substituteStatement = \case
   Assert e -> do
     e' <- substituteLocExpr e
     return $ Assert e'
+  CheckSat -> return CheckSat
+  GetModel -> return GetModel
+  Exit -> return Exit
 
 substituteLocStatement :: (Loc Statement) -> State Env (Loc Statement)
 substituteLocStatement (Loc startPos endPos statement) = substituteStatement statement >>= return . Loc startPos endPos
@@ -64,7 +68,9 @@ substituteProgram (Program statements) = Program $ evalState go M.empty
 -- Conversion to SMT-LIB format
 
 smtlibWrap :: String -> [String] -> String
-smtlibWrap op args = "(" ++ op ++ " " ++ L.intercalate " " args ++ ")"
+smtlibWrap op args = "(" ++ op ++ sep ++ L.intercalate " " args ++ ")"
+ where
+  sep = if null args then "" else " "
 
 smtlibExpr :: (Loc Expr) -> String
 smtlibExpr (Loc _ _ expr) = case expr of
@@ -89,21 +95,15 @@ smtlibExpr (Loc _ _ expr) = case expr of
 
 smtlibStatement :: (Loc Statement) -> String
 smtlibStatement (Loc _ _ statement) = case statement of
+  SetLogic l -> smtlibWrap "set-logic" [show $ node l]
   Declare vs s -> L.intercalate "\n" $ map (\v -> smtlibWrap "declare-const" [node v, show s]) vs
+  Assign _ _ -> ""
   Assert e -> smtlibWrap "assert" [smtlibExpr e]
-  _ -> ""
-
-setLogic, checkSat, getModel, exit :: String
-setLogic = "(set-logic QF_NIA)"
-checkSat = "(check-sat)"
-getModel = "(get-model)"
-exit = "(exit)"
+  CheckSat -> smtlibWrap "check-sat" []
+  GetModel -> smtlibWrap "get-model" []
+  Exit -> smtlibWrap "exit" []
 
 smtlib :: Program -> String
-smtlib program =
-  unlines $
-    [setLogic]
-      ++ filter (not . null) (map smtlibStatement statements)
-      ++ [checkSat, getModel, exit]
+smtlib program = unlines $ filter (not . null) (map smtlibStatement statements)
  where
   Program statements = substituteProgram program

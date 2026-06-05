@@ -39,13 +39,22 @@ symbol = L.symbol sc
 
 reserved :: [String]
 reserved =
-  [ "var"
+  [ "set"
+  , "logic"
+  , "QF_LIA"
+  , "QF_NIA"
+  , "var"
   , "let"
   , "assert"
   , "bool"
   , "int"
   , "T"
   , "F"
+  , "check"
+  , "sat"
+  , "get"
+  , "model"
+  , "exit"
   ]
 
 keyword :: String -> Parser ()
@@ -82,6 +91,13 @@ locateOp2 op cons = do
   return $ \e f -> Loc (startPos e) (endPos f) (cons e f)
 
 -- Expressions and statements
+
+qflia, qfnia :: Parser (Loc Logic)
+qflia = locate $ keyword "QF_LIA" >> return QF_LIA
+qfnia = locate $ keyword "QF_NIA" >> return QF_NIA
+
+logic :: Parser (Loc Logic)
+logic = qflia <|> qfnia
 
 bool, int :: Parser (Loc Sort)
 bool = locate $ keyword "bool" >> return Bool
@@ -153,6 +169,13 @@ expr = makeExprParser term operatorTable
 
 -- Statements
 
+setLogic :: Parser (Loc Statement)
+setLogic = locate $ do
+  lexeme $ keyword "set"
+  lexeme $ keyword "logic"
+  l <- logic
+  return $ SetLogic l
+
 declare :: Parser (Loc Statement)
 declare = locate $ do
   lexeme $ keyword "var"
@@ -175,8 +198,25 @@ assert = locate $ do
   e <- expr
   return $ Assert e
 
+checkSat :: Parser (Loc Statement)
+checkSat = locate $ do
+  lexeme $ keyword "check"
+  lexeme $ keyword "sat"
+  return CheckSat
+
+getModel :: Parser (Loc Statement)
+getModel = locate $ do
+  lexeme $ keyword "get"
+  lexeme $ keyword "model"
+  return GetModel
+
+exit :: Parser (Loc Statement)
+exit = locate $ do
+  lexeme $ keyword "exit"
+  return Exit
+
 statement :: Parser (Loc Statement)
-statement = declare <|> assign <|> assert
+statement = setLogic <|> declare <|> assign <|> assert <|> checkSat <|> getModel <|> exit
 
 -- Entry point
 
