@@ -140,6 +140,14 @@ parens = do
   end <- getSourcePos
   return $ Loc start end (node e)
 
+abs :: Parser (Loc Expr)
+abs = do
+  start <- getSourcePos
+  -- Closing paren must be a string so that SourcePos is correct
+  e <- between (symbol "|") (string "|") expr
+  end <- getSourcePos
+  return $ Loc start end (Abs e)
+
 {- FOURMOLU_DISABLE -}
 operatorTable :: [[Operator Parser (Loc Expr)]]
 operatorTable =
@@ -169,7 +177,7 @@ operatorTable =
 {- FOURMOLU_ENABLE -}
 
 term :: Parser (Loc Expr)
-term = lexeme $ parens <|> lit <|> var
+term = lexeme $ parens <|> Parser.abs <|> lit <|> var
 
 expr :: Parser (Loc Expr)
 expr = makeExprParser term operatorTable

@@ -112,6 +112,7 @@ var a, b, x, y, d : int
 | Operator | Meaning          | Example |
 | -------- | ---------------- | ------- |
 | `-`      | Negation         | `-a`    |
+| `\|•\|`  | Absolute value   | `\|a\|` |
 | `+`      | Addition         | `a + b` |
 | `-`      | Subtraction      | `a - b` |
 | `*`      | Multiplication   | `a * b` |

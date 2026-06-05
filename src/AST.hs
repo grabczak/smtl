@@ -46,6 +46,7 @@ data Expr
   | Iff (Loc Expr) (Loc Expr)
   | -- Arithmetic operators
     Neg (Loc Expr)
+  | Abs (Loc Expr)
   | Add (Loc Expr) (Loc Expr)
   | Sub (Loc Expr) (Loc Expr)
   | Mul (Loc Expr) (Loc Expr)
@@ -70,6 +71,7 @@ instance Show Expr where
     Imp p q -> wrap2 "Imp" p q
     Iff p q -> wrap2 "Iff" p q
     Neg e -> wrap1 "Neg" e
+    Abs e -> wrap1 "Abs" e
     Add m n -> wrap2 "Add" m n
     Sub m n -> wrap2 "Sub" m n
     Mul m n -> wrap2 "Mul" m n
