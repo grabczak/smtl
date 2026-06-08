@@ -121,7 +121,7 @@ var a, b, x, y, d : int
 
 | Operator | Meaning          | Example  |
 | -------- | ---------------- | -------- |
-| `=`      | Equality         | `a = b`  |
+| `==`     | Equality         | `a == b` |
 | `!=`     | Inequality       | `a != b` |
 | `<`      | Less than        | `a < b`  |
 | `>`      | Greater than     | `a > b`  |
