@@ -72,7 +72,7 @@ let bezout = a * x + b * y == d
 
 # Assertions
 assert a == 12 /\ b == 18
-assert d >= 0
+assert d > 0
 assert a % d == 0 /\ b % d == 0
 assert bezout
 
